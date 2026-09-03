@@ -1,0 +1,8 @@
+# Architecture Decision Records
+
+## Kararlar
+
+- [ADR-0001 — Baseline'a Modüler Tek Servisle Başlamak](0001-baseline-moduler-monolith.md)
+- [ADR-0002 — Başlangıç Teknoloji Seçimleri](0002-baslangic-teknolojileri.md)
+
+Mimari kararlar sıralı `ADR-NNN-kisa-baslik.md` dosyaları olarak kaydedilir. Yeni kayıtlar için [ADR şablonu](../templates/adr-template.md) kullanılır.

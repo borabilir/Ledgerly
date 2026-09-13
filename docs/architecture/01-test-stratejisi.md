@@ -2,6 +2,7 @@
 
 **Durum:** Accepted
 **Tarih:** 2026-09-03
+**Son güncelleme:** 2026-09-13
 
 ## Amaç
 
@@ -53,11 +54,12 @@ public void Create_WhenValuesAreValid_ShouldCreateActiveWalletWithZeroBalance()
     var createdAtUtc = new DateTimeOffset(
         2026, 9, 3, 12, 0, 0, TimeSpan.Zero);
 
-    var wallet = Wallet.Create(ownerId, "TRY", createdAtUtc);
+    var currency = Currency.FromCode("TRY");
+    var wallet = Wallet.Create(ownerId, currency, createdAtUtc);
 
     Assert.NotEqual(Guid.Empty, wallet.Id);
     Assert.Equal(ownerId, wallet.OwnerId);
-    Assert.Equal("TRY", wallet.Currency);
+    Assert.Equal(currency, wallet.Currency);
     Assert.Equal(WalletStatus.Active, wallet.Status);
     Assert.Equal(0m, wallet.Balance);
     Assert.Equal(createdAtUtc, wallet.CreatedAtUtc);
@@ -74,9 +76,10 @@ public void Create_WhenOwnerIdIsEmpty_ShouldThrowArgumentException()
 {
     var createdAtUtc = new DateTimeOffset(
         2026, 9, 3, 12, 0, 0, TimeSpan.Zero);
+    var currency = Currency.FromCode("TRY");
 
     var exception = Assert.Throws<ArgumentException>(() =>
-        Wallet.Create(Guid.Empty, "TRY", createdAtUtc));
+        Wallet.Create(Guid.Empty, currency, createdAtUtc));
 
     Assert.Equal("ownerId", exception.ParamName);
 }
@@ -104,10 +107,10 @@ public void Create_WhenOwnerIdIsEmpty_ShouldThrowArgumentException()
 [InlineData("")]
 [InlineData(" ")]
 [InlineData("   ")]
-public void Create_WhenCurrencyIsBlank_ShouldThrowArgumentException(
-    string currency)
+public void FromCode_WhenCodeIsBlank_ShouldThrowArgumentException(
+    string code)
 {
-    // Aynı davranış her veri satırı için ayrı test olarak çalışır.
+    Assert.Throws<ArgumentException>(() => Currency.FromCode(code));
 }
 ```
 
@@ -186,7 +189,7 @@ dotnet test tests/Ledgerly.Domain.Tests/Ledgerly.Domain.Tests.csproj
 Bir test sınıfı:
 
 ```powershell
-dotnet test tests/Ledgerly.Domain.Tests/Ledgerly.Domain.Tests.csproj --filter "FullyQualifiedName~Ledgerly.Domain.Tests.Wallets.WalletTests"
+dotnet test tests/Ledgerly.Domain.Tests/Ledgerly.Domain.Tests.csproj --filter "FullyQualifiedName~Ledgerly.Domain.Tests.Wallets.WalletCreateTests"
 ```
 
 Tek test:
@@ -201,9 +204,15 @@ Test adlarını listeleme:
 dotnet test tests/Ledgerly.Domain.Tests/Ledgerly.Domain.Tests.csproj --list-tests
 ```
 
+Application testleri:
+
+```powershell
+dotnet test tests/Ledgerly.Application.Tests/Ledgerly.Application.Tests.csproj
+```
+
 ## Mevcut durum
 
-- Geçerli wallet oluşturma davranışı test edildi.
-- Boş owner ID invariant'ı Red ve Green aşamalarıyla doğrulandı.
-- `UnitTest1.cs` içindeki boş template testi anlamlı bir doğrulama değildir ve kaldırılmalıdır.
-- Sıradaki davranış currency normalizasyonu ve validation'dır.
+- Wallet oluşturma, owner ve currency kuralları ile UTC normalizasyonu 12 domain test case'iyle doğrulandı.
+- Create Wallet happy-path ve duplicate orchestration davranışları 2 Application testiyle doğrulandı.
+- Domain ve Application projelerindeki boş `UnitTest1.cs` template testleri kaldırıldı.
+- Sıradaki test sınırı EF Core mapping'i, unique constraint ve gerçek PostgreSQL davranışıdır.

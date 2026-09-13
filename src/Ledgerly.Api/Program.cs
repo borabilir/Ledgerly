@@ -1,3 +1,6 @@
+using Ledgerly.Application.Wallets.CreateWallet;
+using Ledgerly.Infrastructure;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -5,6 +8,9 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
+builder.Services.AddScoped<CreateWalletHandler>();
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddInfrastructure(builder.Configuration);
 
 var app = builder.Build();
 

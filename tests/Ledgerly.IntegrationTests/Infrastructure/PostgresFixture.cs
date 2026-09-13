@@ -1,0 +1,74 @@
+using Ledgerly.Application.Wallets.CreateWallet;
+using Ledgerly.Infrastructure;
+using Ledgerly.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace Ledgerly.IntegrationTests.Infrastructure;
+
+public sealed class PostgresFixture : IAsyncLifetime
+{
+    private const string DefaultConnectionString =
+        "Host=localhost;Port=5432;Database=ledgerly;Username=ledgerly;Password=ledgerly_dev";
+
+    public static readonly DateTimeOffset FixedUtcNow =
+        new(2026, 9, 14, 12, 0, 0, TimeSpan.Zero);
+
+    public PostgresFixture()
+    {
+        var connectionString = Environment.GetEnvironmentVariable(
+                "LEDGERLY_TEST_DB_CONNECTION_STRING"
+            )
+            ?? DefaultConnectionString;
+
+        var configuration = new ConfigurationManager
+        {
+            ["ConnectionStrings:Database"] = connectionString,
+        };
+
+        var services = new ServiceCollection();
+
+        services.AddInfrastructure(configuration);
+        services.AddScoped<CreateWalletHandler>();
+        services.AddSingleton<TimeProvider>(new StubTimeProvider(FixedUtcNow));
+
+        Services = services.BuildServiceProvider(validateScopes: true);
+    }
+
+    public ServiceProvider Services { get; }
+
+    public async Task InitializeAsync()
+    {
+        await using var scope = Services.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<LedgerlyDbContext>();
+
+        await dbContext.Database.MigrateAsync();
+    }
+
+    public async Task DisposeAsync()
+    {
+        await Services.DisposeAsync();
+    }
+
+    private sealed class StubTimeProvider : TimeProvider
+    {
+        private readonly DateTimeOffset _utcNow;
+
+        public StubTimeProvider(DateTimeOffset utcNow)
+        {
+            _utcNow = utcNow;
+        }
+
+        public override DateTimeOffset GetUtcNow()
+        {
+            return _utcNow;
+        }
+    }
+}
+
+[CollectionDefinition(Name, DisableParallelization = true)]
+public sealed class PostgresCollection : ICollectionFixture<PostgresFixture>
+{
+    public const string Name = "PostgreSQL";
+}

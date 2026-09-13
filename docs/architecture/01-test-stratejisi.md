@@ -210,9 +210,26 @@ Application testleri:
 dotnet test tests/Ledgerly.Application.Tests/Ledgerly.Application.Tests.csproj
 ```
 
+Docker'daki gerçek PostgreSQL'i kullanan integration testleri:
+
+```powershell
+docker compose up -d
+
+dotnet test tests/Ledgerly.IntegrationTests/Ledgerly.IntegrationTests.csproj `
+  --filter "Category=Integration"
+```
+
+Test bağlantısı gerektiğinde environment variable ile değiştirilebilir:
+
+```powershell
+$env:LEDGERLY_TEST_DB_CONNECTION_STRING = "Host=localhost;Port=5432;Database=ledgerly;Username=ledgerly;Password=ledgerly_dev"
+```
+
 ## Mevcut durum
 
 - Wallet oluşturma, owner ve currency kuralları ile UTC normalizasyonu 12 domain test case'iyle doğrulandı.
 - Create Wallet happy-path ve duplicate orchestration davranışları 2 Application testiyle doğrulandı.
-- Domain ve Application projelerindeki boş `UnitTest1.cs` template testleri kaldırıldı.
-- Sıradaki test sınırı EF Core mapping'i, unique constraint ve gerçek PostgreSQL davranışıdır.
+- Create Wallet persistence akışı gerçek PostgreSQL kullanan 2 integration testiyle doğrulandı.
+- Domain, Application ve Integration test projelerindeki boş `UnitTest1.cs` template testleri kaldırıldı.
+- Integration testleri migration'ı uygular ve her testin verisini transaction rollback ile temizler.
+- Unique constraint'in eşzamanlı istek yarışındaki davranışı ileride ayrı bir concurrency lab'ında reproduce edilecektir.

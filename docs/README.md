@@ -26,6 +26,7 @@ Bu dizin yalnızca sistemin son hâlini değil, o hâle neden ve nasıl ulaşıl
 - [ADR-0001 — Baseline'a Modüler Tek Servisle Başlamak](adr/0001-baseline-moduler-monolith.md)
 - [ADR-0002 — Başlangıç Teknoloji Seçimleri](adr/0002-baslangic-teknolojileri.md)
 - [00 — Solution Bootstrap](journey/00-bootstrap.md)
+- [01 — PostgreSQL Persistence Baseline](journey/01-postgresql-persistence.md)
 
 ## Kayıt kuralları
 

@@ -225,6 +225,8 @@ Test bağlantısı gerektiğinde environment variable ile değiştirilebilir:
 $env:LEDGERLY_TEST_DB_CONNECTION_STRING = "Host=localhost;Port=5432;Database=ledgerly_tests;Username=ledgerly;Password=ledgerly_dev"
 ```
 
+Varsayılan test bağlantısı `tests/Ledgerly.IntegrationTests/appsettings.IntegrationTests.json` dosyasından okunur. Environment variable tanımlıysa dosyadaki değeri ezer.
+
 ## Mevcut durum
 
 - Wallet oluşturma, owner ve currency kuralları ile UTC normalizasyonu 12 domain test case'iyle doğrulandı.

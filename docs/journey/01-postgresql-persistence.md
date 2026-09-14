@@ -166,6 +166,15 @@ Test fixture başlangıçta `Database.MigrateAsync()` çağırır. Her test ayr�
 
 Fixture'ın varsayılan bağlantısı `ledgerly_tests` database'idir. Böylece test migration'ları ve şeması development için kullanılan `ledgerly` database'inden ayrılır.
 
+Test connection string'i production kodunda veya fixture sabitinde tutulmaz. `tests/Ledgerly.IntegrationTests/appsettings.IntegrationTests.json` build sırasında test output dizinine kopyalanır ve fixture tarafından yüklenir.
+
+Konfigürasyon önceliği:
+
+```text
+LEDGERLY_TEST_DB_CONNECTION_STRING environment variable
+  -> tanımlı değilse appsettings.IntegrationTests.json
+```
+
 ```powershell
 docker compose up -d
 

@@ -9,23 +9,28 @@ namespace Ledgerly.IntegrationTests.Infrastructure;
 
 public sealed class PostgresFixture : IAsyncLifetime
 {
-    private const string DefaultConnectionString =
-        "Host=localhost;Port=5432;Database=ledgerly_tests;Username=ledgerly;Password=ledgerly_dev";
+    private const string SettingsFileName = "appsettings.IntegrationTests.json";
+    private const string ConnectionStringEnvironmentVariable =
+        "LEDGERLY_TEST_DB_CONNECTION_STRING";
 
     public static readonly DateTimeOffset FixedUtcNow =
         new(2026, 9, 14, 12, 0, 0, TimeSpan.Zero);
 
     public PostgresFixture()
     {
-        var connectionString = Environment.GetEnvironmentVariable(
-                "LEDGERLY_TEST_DB_CONNECTION_STRING"
-            )
-            ?? DefaultConnectionString;
+        var configuration = new ConfigurationBuilder()
+            .SetBasePath(AppContext.BaseDirectory)
+            .AddJsonFile(SettingsFileName, optional: false)
+            .Build();
 
-        var configuration = new ConfigurationManager
+        var connectionStringOverride = Environment.GetEnvironmentVariable(
+            ConnectionStringEnvironmentVariable
+        );
+
+        if (!string.IsNullOrWhiteSpace(connectionStringOverride))
         {
-            ["ConnectionStrings:Database"] = connectionString,
-        };
+            configuration["ConnectionStrings:Database"] = connectionStringOverride;
+        }
 
         var services = new ServiceCollection();
 

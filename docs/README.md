@@ -28,6 +28,7 @@ Bu dizin yalnızca sistemin son hâlini değil, o hâle neden ve nasıl ulaşıl
 - [00 — Solution Bootstrap](journey/00-bootstrap.md)
 - [01 — PostgreSQL Persistence Baseline](journey/01-postgresql-persistence.md)
 - [02 — Create Wallet HTTP API](journey/02-create-wallet-http-api.md)
+- [LAB-001 — Eşzamanlı Create Wallet Yarışı](labs/001-concurrent-create-wallet/README.md)
 
 ## Kayıt kuralları
 

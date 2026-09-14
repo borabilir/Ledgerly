@@ -62,4 +62,14 @@ public sealed class LedgerlyApiFactory : WebApplicationFactory<Program>, IAsyncL
             .AsNoTracking()
             .AnyAsync(wallet => wallet.Id == walletId);
     }
+
+    public async Task<int> CountWalletsAsync(Guid ownerId)
+    {
+        await using var scope = Services.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<LedgerlyDbContext>();
+
+        return await dbContext.Wallets
+            .AsNoTracking()
+            .CountAsync(wallet => wallet.OwnerId == ownerId);
+    }
 }

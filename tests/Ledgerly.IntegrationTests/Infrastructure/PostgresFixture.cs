@@ -10,7 +10,7 @@ namespace Ledgerly.IntegrationTests.Infrastructure;
 public sealed class PostgresFixture : IAsyncLifetime
 {
     private const string DefaultConnectionString =
-        "Host=localhost;Port=5432;Database=ledgerly;Username=ledgerly;Password=ledgerly_dev";
+        "Host=localhost;Port=5432;Database=ledgerly_tests;Username=ledgerly;Password=ledgerly_dev";
 
     public static readonly DateTimeOffset FixedUtcNow =
         new(2026, 9, 14, 12, 0, 0, TimeSpan.Zero);

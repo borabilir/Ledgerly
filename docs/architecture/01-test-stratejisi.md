@@ -222,7 +222,7 @@ dotnet test tests/Ledgerly.IntegrationTests/Ledgerly.IntegrationTests.csproj `
 Test bağlantısı gerektiğinde environment variable ile değiştirilebilir:
 
 ```powershell
-$env:LEDGERLY_TEST_DB_CONNECTION_STRING = "Host=localhost;Port=5432;Database=ledgerly;Username=ledgerly;Password=ledgerly_dev"
+$env:LEDGERLY_TEST_DB_CONNECTION_STRING = "Host=localhost;Port=5432;Database=ledgerly_tests;Username=ledgerly;Password=ledgerly_dev"
 ```
 
 ## Mevcut durum
@@ -232,4 +232,5 @@ $env:LEDGERLY_TEST_DB_CONNECTION_STRING = "Host=localhost;Port=5432;Database=led
 - Create Wallet persistence akışı gerçek PostgreSQL kullanan 2 integration testiyle doğrulandı.
 - Domain, Application ve Integration test projelerindeki boş `UnitTest1.cs` template testleri kaldırıldı.
 - Integration testleri migration'ı uygular ve her testin verisini transaction rollback ile temizler.
+- Integration testleri varsayılan olarak development DB'den ayrı `ledgerly_tests` database'ini kullanır.
 - Unique constraint'in eşzamanlı istek yarışındaki davranışı ileride ayrı bir concurrency lab'ında reproduce edilecektir.

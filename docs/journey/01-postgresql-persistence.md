@@ -40,6 +40,15 @@ docker compose ps
 
 Container'ın `healthy` olması yalnızca process'in çalıştığını değil, PostgreSQL'in bağlantı kabul edebildiğini gösterir.
 
+Aynı PostgreSQL instance'ı içinde iki ayrı database bulunur:
+
+```text
+ledgerly       -> uygulamanın development database'i
+ledgerly_tests -> integration test database'i
+```
+
+Yeni ve boş volume ilk kez initialize edilirken `docker/postgres/init/01-create-test-database.sql` script'i `ledgerly_tests` database'ini otomatik oluşturur. Daha önceden initialize edilmiş volume'larda init script tekrar çalışmaz; bu durumda database bir kez `createdb` ile oluşturulur.
+
 Repository'deki `ledgerly_dev` parolası yalnızca izole lokal geliştirme credential'ıdır. Production bağlantısı source control dışında environment variable veya secret store üzerinden verilmelidir.
 
 ## DbContext ve mapping
@@ -154,6 +163,8 @@ Testler EF Core InMemory provider kullanmaz. Gerçek PostgreSQL şu davranışla
 - Duplicate wallet pre-check'i
 
 Test fixture başlangıçta `Database.MigrateAsync()` çağırır. Her test ayrı transaction açar ve sonunda rollback yapar. Böylece test gerçek database davranışını kullanırken kalıcı test verisi bırakmaz.
+
+Fixture'ın varsayılan bağlantısı `ledgerly_tests` database'idir. Böylece test migration'ları ve şeması development için kullanılan `ledgerly` database'inden ayrılır.
 
 ```powershell
 docker compose up -d

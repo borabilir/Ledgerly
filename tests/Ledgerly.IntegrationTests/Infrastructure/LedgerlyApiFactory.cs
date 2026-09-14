@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Ledgerly.IntegrationTests.Infrastructure;
 
+// Integration testlerinde API'yi bizim yerimize ayağa kaldırır ve gönderdiğimiz HTTP isteklerini ayrı PostgreSQL test veritabanına kadar gerçek akıştan geçirir.
 public sealed class LedgerlyApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
     private const string SettingsFileName = "appsettings.IntegrationTests.json";

@@ -73,7 +73,8 @@ public sealed class PostgresFixture : IAsyncLifetime
 }
 
 [CollectionDefinition(Name, DisableParallelization = true)]
-public sealed class PostgresCollection : ICollectionFixture<PostgresFixture>
+public sealed class PostgresCollection
+    : ICollectionFixture<PostgresFixture>, ICollectionFixture<LedgerlyApiFactory>
 {
     public const string Name = "PostgreSQL";
 }

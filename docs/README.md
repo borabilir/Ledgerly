@@ -27,6 +27,7 @@ Bu dizin yalnızca sistemin son hâlini değil, o hâle neden ve nasıl ulaşıl
 - [ADR-0002 — Başlangıç Teknoloji Seçimleri](adr/0002-baslangic-teknolojileri.md)
 - [00 — Solution Bootstrap](journey/00-bootstrap.md)
 - [01 — PostgreSQL Persistence Baseline](journey/01-postgresql-persistence.md)
+- [02 — Create Wallet HTTP API](journey/02-create-wallet-http-api.md)
 
 ## Kayıt kuralları
 

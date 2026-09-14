@@ -1,6 +1,11 @@
-@Ledgerly.Api_HostAddress = http://localhost:5192
+@Ledgerly.Api_HostAddress = https://localhost:7092
 
-GET {{Ledgerly.Api_HostAddress}}/weatherforecast/
-Accept: application/json
+POST {{Ledgerly.Api_HostAddress}}/api/wallets
+Content-Type: application/json
+
+{
+  "ownerId": "7d8ea830-5bd0-4f5f-bdc8-9d3c413ea55e",
+  "currencyCode": "TRY"
+}
 
 ###

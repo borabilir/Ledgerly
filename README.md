@@ -23,3 +23,36 @@ Baseline
 ```
 
 Detaylı kayıt düzeni için [dokümantasyon rehberine](docs/README.md) bakın.
+
+## Uygulamayı çalıştırma
+
+```powershell
+docker compose up -d
+dotnet tool restore
+dotnet dev-certs https --trust # yalnızca ilk lokal kurulumda gerekiyorsa
+dotnet ef database update `
+  --project src/Ledgerly.Infrastructure/Ledgerly.Infrastructure.csproj `
+  --startup-project src/Ledgerly.Api/Ledgerly.Api.csproj `
+  -- --environment Development
+dotnet run --project src/Ledgerly.Api/Ledgerly.Api.csproj --launch-profile https
+```
+
+Development ortamında API arayüzü `https://localhost:7092/scalar/v1`, OpenAPI belgesi ise `https://localhost:7092/openapi/v1.json` adresindedir.
+
+İlk endpoint:
+
+```http
+POST /api/wallets
+Content-Type: application/json
+
+{
+  "ownerId": "7d8ea830-5bd0-4f5f-bdc8-9d3c413ea55e",
+  "currencyCode": "TRY"
+}
+```
+
+Tüm testler:
+
+```powershell
+dotnet test Ledgerly.slnx
+```

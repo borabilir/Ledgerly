@@ -1,6 +1,6 @@
 # CQRS ve Create Wallet Application Akışı
 
-**Durum:** Application kısmı uygulandı, persistence ve HTTP adaptörleri planlandı
+**Durum:** Command, persistence ve HTTP adaptörleri uygulandı; query tarafı planlandı
 **Tarih:** 2026-09-13
 
 ## Amaç
@@ -75,7 +75,7 @@ Handler iş kuralını yeniden yazmaz. Geçerli wallet oluşturma sorumluluğunu
 public sealed record CreateWalletResult(Guid WalletId);
 ```
 
-Command sonucunda tam bir read model döndürmek yerine oluşturulan kaynağın kimliği döndürülür. API daha sonra bu kimlikle `201 Created` ve `Location` header üretebilir. Wallet detayını okuma ihtiyacı ayrı bir query use-case'i ile ele alınacaktır.
+Command sonucunda tam bir read model döndürmek yerine oluşturulan kaynağın kimliği döndürülür. API bu kimliği `201 Created` response body'sinde sunar. Henüz kaynağı okuyacak GET endpoint'i olmadığı için gerçekte çalışmayan bir `Location` header üretilmedi. Wallet detayını okuma ihtiyacı ayrı bir query use-case'i ile ele alınacaktır.
 
 Alternatif olarak handler doğrudan `Guid` döndürebilirdi. İsimlendirilmiş result tipi, use-case sözleşmesini daha açık kılar ve ileride metadata eklenmesine alan bırakır.
 
@@ -186,17 +186,19 @@ Mevcut Application test sonucu: **2 başarılı test**.
 - TimeProvider ile deterministik zaman
 - Duplicate kontrolü ve Application exception
 - Happy-path ve duplicate Application testleri
-
-### Planlandı
-
 - EF Core DbContext ve PostgreSQL repository
-- Unique constraint ile concurrency garantisi
+- `(owner_id, currency)` unique constraint'i
 - Transaction integration testi
 - Dependency injection kaydı
 - `POST /api/wallets` endpoint'i
 - Exception-to-ProblemDetails mapping
+- HTTP functional testleri
+
+### Planlandı
+
+- Yarış anındaki unique constraint exception'ını kontrollü Application hatasına çevirmek
 - Query tarafı ve read model
 
 ## Sonraki adım
 
-Infrastructure katmanında PostgreSQL persistence baseline'ı kurulacak. İlk integration testi, oluşturulan wallet'ın gerçek veritabanına doğru mapping ile kaydedildiğini doğrulayacaktır.
+Eşzamanlı iki Create Wallet isteğinin pre-check'i birlikte geçtiği yarışı reproduce etmek ve PostgreSQL garantisini API'de deterministik bir `409 Conflict` sonucuna çevirmek.

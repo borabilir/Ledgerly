@@ -246,12 +246,11 @@ Root cause: Migration dosyası oluşturulduktan sonra database update `--no-buil
 - `wallets` ve `__EFMigrationsHistory` tabloları oluştu.
 - `InitialCreate` migration'ı uygulanmış durumda.
 - EF modeli ile migration snapshot arasında pending değişiklik yok.
-- 12 Domain, 2 Application ve 2 PostgreSQL Integration testi başarılı.
+- 12 Domain, 2 Application ve 7 Integration testi başarılı. Integration paketinin 4 testi HTTP sınırından başlayarak aynı gerçek test database'ine kadar ilerler; bir test OpenAPI ve Scalar route'larını doğrular.
 - Build 0 warning ve 0 error ile tamamlanıyor.
 
 ## Bilinçli olarak ertelenenler
 
-- API endpoint ve HTTP contract testi
 - Concurrency yarışının reproduce edilmesi
 - Unique constraint exception'ının domain/application hatasına çevrilmesi
 - Idempotency key
@@ -261,4 +260,4 @@ Root cause: Migration dosyası oluşturulduktan sonra database update `--no-buil
 
 ## Sonraki adım
 
-Create Wallet vertical slice'ını HTTP üzerinden erişilebilir yapmak ve API contract'ını functional test ile doğrulamak.
+Tamamlanan HTTP milestone'ı için [02 — Create Wallet HTTP API](02-create-wallet-http-api.md) belgesine bakın. Sonraki teknik senaryo, eşzamanlı duplicate istek yarışını reproduce edip database unique constraint ihlalini kontrollü bir `409 Conflict` sonucuna çevirmektir.

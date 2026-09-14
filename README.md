@@ -56,3 +56,15 @@ Tüm testler:
 ```powershell
 dotnet test Ledgerly.slnx
 ```
+
+## VS Code ile çalıştırma ve debug
+
+Önerilen eklentileri yükledikten sonra **Run and Debug** görünümünden `Ledgerly.Api (HTTPS)` profilini seçip `F5`e basın. Bu profil PostgreSQL container'ını başlatır, local .NET araçlarını restore eder, migration'ları development database'ine uygular, API'yi debugger ile açar ve hazır olduğunda Scalar sayfasını tarayıcıda gösterir.
+
+- `F5`: debugger ile çalıştırır.
+- `Ctrl+F5`: debugger olmadan çalıştırır.
+- `Ctrl+Shift+B`: varsayılan solution build task'ını çalıştırır.
+- `Terminal > Run Task`: PostgreSQL, test ve migration task'larını listeler.
+- Sol menüdeki **Testing** görünümü: xUnit testlerini tek tek veya toplu çalıştırıp debug eder.
+
+İlk HTTPS kullanımında developer certificate eksikse `Terminal > Run Task > Ledgerly: trust HTTPS certificate` seçeneğini kullanın veya terminalden bir kez `dotnet dev-certs https --trust` çalıştırın.

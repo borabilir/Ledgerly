@@ -182,6 +182,29 @@ Tüm testler:
 dotnet test Ledgerly.slnx
 ```
 
+## VS Code geliştirme deneyimi
+
+Repository'deki `.vscode` dizini ekipçe paylaşılabilen run/debug desteğini içerir:
+
+```text
+launch.json     -> Ledgerly.Api HTTPS debug profili
+tasks.json      -> Docker, build, test ve migration komutları
+extensions.json -> C# Dev Kit ve REST Client önerileri
+```
+
+`Ledgerly.Api (HTTPS)` profili başlatıldığında `preLaunchTask` sırasıyla PostgreSQL'i başlatır, local .NET araçlarını restore eder ve development database migration'larını uygular. Migration komutu API'yi de build eder. API, `Properties/launchSettings.json` içindeki `https` profilini kullanır; böylece `dotnet run`, Visual Studio ve VS Code aynı port ve environment ayarlarını paylaşır.
+
+API hazır olduğunda `serverReadyAction`, Scalar sayfasını `https://localhost:7092/scalar/v1` adresinde açar. Breakpoint'ler controller, handler, repository ve exception handler boyunca kullanılabilir.
+
+Testler için iki yol vardır:
+
+- C# Dev Kit Testing görünümünde testin yanındaki Run/Debug komutları
+- `Terminal > Run Task` altında `Ledgerly: test all` veya `Ledgerly: test integration`
+
+`.vscode` altındaki kişisel olmayan üç dosya `.gitignore` tarafından özellikle source control'e dahil edilir. Kullanıcıya özel VS Code ayarları repository'ye eklenmez.
+
+HTTPS developer certificate makineye özgüdür ve repository'de tutulmaz. Eksikse `Ledgerly: trust HTTPS certificate` task'ı bir kez kullanıcı tarafından çalıştırılır; işletim sisteminin güven onayı otomatikleştirilmez.
+
 ## Doğrulama kanıtı
 
 - API ve bütün solution 0 warning, 0 error ile build edildi.

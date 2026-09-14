@@ -1,0 +1,119 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Ledgerly: trust HTTPS certificate",
+      "type": "process",
+      "command": "dotnet",
+      "args": ["dev-certs", "https", "--trust"],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Ledgerly: PostgreSQL start",
+      "type": "process",
+      "command": "docker",
+      "args": ["compose", "up", "-d"],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Ledgerly: PostgreSQL status",
+      "type": "process",
+      "command": "docker",
+      "args": ["compose", "ps"],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Ledgerly: tool restore",
+      "type": "process",
+      "command": "dotnet",
+      "args": ["tool", "restore"],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Ledgerly: build",
+      "type": "process",
+      "command": "dotnet",
+      "args": ["build", "Ledgerly.slnx"],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": "$msCompile",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "Ledgerly: prepare API",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "Ledgerly: PostgreSQL start",
+        "Ledgerly: tool restore",
+        "Ledgerly: database update"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "Ledgerly: test all",
+      "type": "process",
+      "command": "dotnet",
+      "args": ["test", "Ledgerly.slnx"],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": "$msCompile",
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "Ledgerly: test integration",
+      "type": "process",
+      "command": "dotnet",
+      "args": [
+        "test",
+        "tests/Ledgerly.IntegrationTests/Ledgerly.IntegrationTests.csproj",
+        "--filter",
+        "Category=Integration"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "Ledgerly: database update",
+      "type": "process",
+      "command": "dotnet",
+      "args": [
+        "ef",
+        "database",
+        "update",
+        "--project",
+        "src/Ledgerly.Infrastructure/Ledgerly.Infrastructure.csproj",
+        "--startup-project",
+        "src/Ledgerly.Api/Ledgerly.Api.csproj",
+        "--",
+        "--environment",
+        "Development"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": "$msCompile"
+    }
+  ]
+}

@@ -143,11 +143,11 @@ Handler önce `ExistsAsync` çağırır. Bu kontrol kullanıcıya erken ve anla�
 İstek B: Insert
 ```
 
-Kalıcı doğruluk için `(owner_id, currency)` üzerinde PostgreSQL unique constraint gerekir. Infrastructure aşamasında constraint ihlali yakalanıp aynı Application hatasına çevrilecektir.
+Kalıcı doğruluk için `(owner_id, currency)` üzerinde PostgreSQL unique constraint gerekir. Infrastructure içindeki IUnitOfWork save sınırı yalnızca 23505 ve ux_wallets_owner_id_currency eşleşmesini aynı Application hatasına çevirir. Ayrıntılar [LAB-001](../labs/001-concurrent-create-wallet/README.md) ve [ADR-0003](../adr/0003-concurrent-create-wallet-conflict.md) içindedir.
 
 ## Hata modeli kararı
 
-Duplicate wallet şu anda `WalletAlreadyExistsException` ile temsil edilir. API bu hatayı daha sonra `409 Conflict`e dönüştürecektir.
+Duplicate wallet şu anda `WalletAlreadyExistsException` ile temsil edilir. API bu hatayı `409 Conflict`e dönüştürür; sıralı duplicate ve concurrent unique violation aynı dış sözleşmeyi kullanır.
 
 Alternatifler:
 
@@ -193,12 +193,12 @@ Mevcut Application test sonucu: **2 başarılı test**.
 - `POST /api/wallets` endpoint'i
 - Exception-to-ProblemDetails mapping
 - HTTP functional testleri
+- Dar unique violation çevirisi ve bariyerli 201/409 regression testi
 
 ### Planlandı
 
-- Yarış anındaki unique constraint exception'ını kontrollü Application hatasına çevirmek
 - Query tarafı ve read model
 
 ## Sonraki adım
 
-Eşzamanlı iki Create Wallet isteğinin pre-check'i birlikte geçtiği yarışı reproduce etmek ve PostgreSQL garantisini API'de deterministik bir `409 Conflict` sonucuna çevirmek.
+Concurrent Create Wallet lab'ı 201/409 ve tek wallet sonucu ile tamamlandı. Query/read model ve finansal çekirdek use-case'leri henüz uygulanmadı; sonraki vertical slice ayrıca seçilecek.

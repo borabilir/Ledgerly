@@ -6,6 +6,8 @@ namespace Ledgerly.Infrastructure.Persistence.Configurations;
 
 internal sealed class WalletConfiguration : IEntityTypeConfiguration<Wallet>
 {
+    internal const string OwnerCurrencyUniqueIndexName = "ux_wallets_owner_id_currency";
+
     public void Configure(EntityTypeBuilder<Wallet> builder)
     {
         builder.ToTable("wallets");
@@ -47,6 +49,6 @@ internal sealed class WalletConfiguration : IEntityTypeConfiguration<Wallet>
 
         builder.HasIndex(wallet => new { wallet.OwnerId, wallet.Currency })
             .IsUnique()
-            .HasDatabaseName("ux_wallets_owner_id_currency");
+            .HasDatabaseName(OwnerCurrencyUniqueIndexName);
     }
 }

@@ -27,7 +27,7 @@ public sealed class CreateWalletConcurrencyTests
     [Fact]
     [Trait("Category", "Integration")]
     [Trait("Lab", "ConcurrentCreateWallet")]
-    public async Task Create_WhenSameWalletIsRequestedConcurrently_ShouldExposeCurrentFailure()
+    public async Task Create_WhenSameWalletIsRequestedConcurrently_ShouldReturnCreatedAndConflict()
     {
         // Arrange
         var ownerId = Guid.NewGuid();
@@ -73,13 +73,15 @@ public sealed class CreateWalletConcurrencyTests
 
             var failedResponse = Assert.Single(
                 responses,
-                response => response.StatusCode == HttpStatusCode.InternalServerError
+                response => response.StatusCode == HttpStatusCode.Conflict
             );
 
             var problem = await failedResponse.Content.ReadFromJsonAsync<ProblemDetails>();
 
             Assert.NotNull(problem);
-            Assert.Equal("An unexpected error occurred", problem.Title);
+            Assert.Equal("Wallet already exists", problem.Title);
+            Assert.Equal(409, problem.Status);
+            Assert.Equal($"Owner '{ownerId}' already has a 'TRY' wallet.", problem.Detail);
             Assert.Equal(1, await _factory.CountWalletsAsync(ownerId));
         }
         finally

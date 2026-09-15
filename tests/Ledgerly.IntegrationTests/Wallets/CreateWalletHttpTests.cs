@@ -44,6 +44,18 @@ public sealed class CreateWalletHttpTests
             Assert.NotNull(body);
             Assert.NotEqual(Guid.Empty, body.WalletId);
             Assert.True(await _factory.WalletExistsAsync(body.WalletId));
+            Assert.NotNull(response.Headers.Location);
+            Assert.Equal(
+                $"https://localhost/api/wallets/{body.WalletId}",
+                response.Headers.Location.AbsoluteUri
+            );
+
+            using var getResponse = await _client.GetAsync(response.Headers.Location);
+            Assert.Equal(HttpStatusCode.OK, getResponse.StatusCode);
+            using var document = await System.Text.Json.JsonDocument.ParseAsync(
+                await getResponse.Content.ReadAsStreamAsync()
+            );
+            Assert.Equal(body.WalletId, document.RootElement.GetProperty("walletId").GetGuid());
         }
         finally
         {

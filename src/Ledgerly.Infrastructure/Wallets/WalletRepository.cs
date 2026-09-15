@@ -16,6 +16,13 @@ internal sealed class WalletRepository : IWalletRepository
         _dbContext = dbContext;
     }
 
+    public Task<Wallet?> GetByIdAsync(Guid walletId, CancellationToken cancellationToken = default)
+    {
+        return _dbContext.Wallets
+            .AsNoTracking()
+            .SingleOrDefaultAsync(wallet => wallet.Id == walletId, cancellationToken);
+    }
+
     public Task<bool> ExistsAsync(
         Guid ownerId,
         Currency currency,

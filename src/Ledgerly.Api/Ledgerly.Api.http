@@ -9,3 +9,10 @@ Content-Type: application/json
 }
 
 ###
+
+# Replace with walletId from POST, or follow its Location response header.
+@walletId = 00000000-0000-0000-0000-000000000000
+GET {{Ledgerly.Api_HostAddress}}/api/wallets/{{walletId}}
+Accept: application/json
+
+###

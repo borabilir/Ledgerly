@@ -1,11 +1,11 @@
-# CQRS ve Create Wallet Application Akışı
+# CQRS ve Wallet Application Akışları
 
-**Durum:** Command, persistence ve HTTP adaptörleri uygulandı; query tarafı planlandı
+**Durum:** Create Wallet command ve Get Wallet query, aynı PostgreSQL üzerinde uygulandı
 **Tarih:** 2026-09-13
 
 ## Amaç
 
-Bu belge Create Wallet use-case'inin Application katmanında nasıl orkestre edildiğini ve kullanılan mimari kararları açıklar.
+Bu belge Create Wallet ve Get Wallet use-case'lerinin Application katmanında nasıl ayrıldığını ve kullanılan mimari kararları açıklar.
 
 ## Mimari bağlam
 
@@ -26,7 +26,7 @@ API ────────────────> Application ────�
 
 ## CQRS'i şu anda nasıl kullanıyoruz?
 
-CQRS, write ve read use-case'lerini farklı modellerle ele alma yaklaşımıdır. Şu an yalnızca ilk command tarafı uygulanmıştır:
+CQRS, write ve read use-case'lerini farklı modellerle ele alma yaklaşımıdır. İlk command akışı şöyledir:
 
 ```text
 CreateWalletCommand
@@ -38,7 +38,7 @@ Domain + persistence portları
 CreateWalletResult
 ```
 
-Henüz ayrı read database, projection veya query handler yoktur. Bu nedenle “tamamen ayrılmış CQRS sistemi” değil, CQRS yönünde açık bir use-case ayrımı uygulanmıştır.
+GetWalletQuery → GetWalletHandler → GetWalletResult okuma akışı da uygulanmıştır. İki handler aynı IWalletRepository ve PostgreSQL wallets tablosunu kullanır. Ayrı read database veya projection yoktur; ayrım use-case seviyesindedir. Ayrıntılı kanıt [Get Wallet milestone](../journey/03-get-wallet-query.md) belgesindedir.
 
 ## Command
 
@@ -75,7 +75,7 @@ Handler iş kuralını yeniden yazmaz. Geçerli wallet oluşturma sorumluluğunu
 public sealed record CreateWalletResult(Guid WalletId);
 ```
 
-Command sonucunda tam bir read model döndürmek yerine oluşturulan kaynağın kimliği döndürülür. API bu kimliği `201 Created` response body'sinde sunar. Henüz kaynağı okuyacak GET endpoint'i olmadığı için gerçekte çalışmayan bir `Location` header üretilmedi. Wallet detayını okuma ihtiyacı ayrı bir query use-case'i ile ele alınacaktır.
+Command sonucunda tam bir read model döndürmek yerine oluşturulan kaynağın kimliği döndürülür. API bu kimliği `201 Created` response body'sinde sunar. GET /api/wallets/{walletId} artık bulunduğu için CreatedAtAction ile gerçek Location adresi üretilir. Ayrı GetWalletResult modeli wallet detaylarını taşır.
 
 Alternatif olarak handler doğrudan `Guid` döndürebilirdi. İsimlendirilmiş result tipi, use-case sözleşmesini daha açık kılar ve ileride metadata eklenmesine alan bırakır.
 
@@ -84,6 +84,10 @@ Alternatif olarak handler doğrudan `Guid` döndürebilirdi. İsimlendirilmiş r
 ```csharp
 public interface IWalletRepository
 {
+    Task<Wallet?> GetByIdAsync(
+        Guid walletId,
+        CancellationToken cancellationToken = default);
+
     Task<bool> ExistsAsync(
         Guid ownerId,
         Currency currency,
@@ -103,6 +107,14 @@ Infrastructure: “Bu portu PostgreSQL ve EF Core ile uygularım.”
 Bu Dependency Inversion uygulamasıdır. Repository interface'ini Infrastructure'a koymak Application'ın dış katmana bağımlı olmasına neden olurdu.
 
 Klasik DDD projelerinde aggregate repository interface'inin Domain'de tutulduğu da görülür. Ledgerly'de repository'ye domain nesnesi değil use-case ihtiyaç duyduğu için Application katmanı seçildi.
+
+## Get Wallet query ve okuma sınırı
+
+GetWalletHandler, ID ile repository'den Wallet snapshot'ı ister ve GetWalletResult'a dönüştürür. Infrastructure sorgusu AsNoTracking kullanır. Bu metottan dönen nesne otomatik kaydetme için takip edilmez; gelecekte write use-case'leri tracked aggregate varsaymamalıdır.
+
+Query handler Unit of Work çağırmaz. Kayıt bulunamazsa null döner; controller 404 ProblemDetails üretir. Domain entity doğrudan JSON olarak sunulmaz. Ayrı GetWalletResponse, status'u string olarak dış sözleşmeye çevirir.
+
+Read ve write ihtiyaçları belirgin ayrışırsa ayrı read portu veya doğrudan DTO projection düşünülebilir. Şimdilik mevcut repository'ye tek bir ID sorgusu eklemek seçildi. Bunun bedeli, repository interface'ini uygulayan fake ve decorator'ların yeni metodu da karşılamasıdır.
 
 ## Unit of Work neden ayrı?
 
@@ -174,7 +186,7 @@ Doğrulanan senaryolar:
 1. Wallet yoksa oluşturulur, eklenir, bir kez kaydedilir ve ID döner.
 2. Wallet varsa `WalletAlreadyExistsException` atılır; ekleme ve save yapılmaz.
 
-Mevcut Application test sonucu: **2 başarılı test**.
+Create Wallet için 2, Get Wallet için 2 olmak üzere **4 Application testi başarılı**. Query testleri alan dönüşümü, ID/token iletimi ve null sonucunu fake repository ile doğrular. Gerçek DB ve HTTP kanıtı integration testlerindedir.
 
 ## Uygulandı ve planlandı ayrımı
 
@@ -194,11 +206,13 @@ Mevcut Application test sonucu: **2 başarılı test**.
 - Exception-to-ProblemDetails mapping
 - HTTP functional testleri
 - Dar unique violation çevirisi ve bariyerli 201/409 regression testi
+- Get Wallet query/handler/result ve 200/404 HTTP sözleşmesi
+- AsNoTracking ID sorgusu ve POST Location adresi
 
 ### Planlandı
 
-- Query tarafı ve read model
+- İhtiyaç oluştuğunda ayrı read projection/database
 
 ## Sonraki adım
 
-Concurrent Create Wallet lab'ı 201/409 ve tek wallet sonucu ile tamamlandı. Query/read model ve finansal çekirdek use-case'leri henüz uygulanmadı; sonraki vertical slice ayrıca seçilecek.
+Create Wallet concurrency ve Get Wallet query tamamlandı. Double-entry ledger, deposit ve transfer use-case'lerinin finansal kuralları sıradadır; ayrı read projection henüz uygulanmadı.

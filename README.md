@@ -51,6 +51,14 @@ Content-Type: application/json
 }
 ```
 
+POST başarılı olduğunda 201 gövdesinde walletId ve Location header'ında gerçek kaynak adresi döner. Bu adresi GET ile takip edebilirsiniz:
+
+```http
+GET /api/wallets/{walletId}
+```
+
+Mevcut wallet için 200 ve detaylar, bulunamayan GUID için 404 ProblemDetails döner. Okuma ve yazma aynı PostgreSQL database'ini kullanır. Ayrıntılar [Get Wallet milestone](docs/journey/03-get-wallet-query.md) belgesinde.
+
 Tüm testler:
 
 ```powershell

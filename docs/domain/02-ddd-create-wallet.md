@@ -3,6 +3,8 @@
 **Durum:** Uygulandı
 **Tarih:** 2026-09-13
 
+> Bu belge Create Wallet milestone'unun tarihsel anlatımıdır. Wallet persistence ve concurrency çözümü sonraki adımlarda tamamlandı. 2026-09-15'te [JournalEntry/Posting domain modeli](03-double-entry-ledger.md) eklendi; toplam domain test sayısı 41 oldu. Aşağıdaki 12 test ve “henüz” listeleri ilk milestone'a aittir.
+
 ## Amaç
 
 Bu belge Domain-Driven Design yaklaşımının Ledgerly'de şu ana kadar nasıl kullanıldığını, hangi kararların gerçekten kodda bulunduğunu ve hangi yapıların henüz yalnızca plan olduğunu kaydeder.

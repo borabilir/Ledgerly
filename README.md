@@ -76,3 +76,7 @@ dotnet test Ledgerly.slnx
 - Sol menüdeki **Testing** görünümü: xUnit testlerini tek tek veya toplu çalıştırıp debug eder.
 
 İlk HTTPS kullanımında developer certificate eksikse `Terminal > Run Task > Ledgerly: trust HTTPS certificate` seçeneğini kullanın veya terminalden bir kez `dotnet dev-certs https --trust` çalıştırın.
+
+## Ledger domain modeli
+
+Dengeli `JournalEntry` ve immutable `Posting` modeli eklendi. Bu aşama domain kurallarını kapsar; ledger persistence ve deposit/transfer endpoint'leri henüz yoktur. [Model ve örnekler](docs/domain/03-double-entry-ledger.md), [test kanıtı ve sonraki adım](docs/journey/04-ledger-domain.md).

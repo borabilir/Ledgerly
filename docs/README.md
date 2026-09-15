@@ -41,3 +41,9 @@ Bu dizin yalnızca sistemin son hâlini değil, o hâle neden ve nasıl ulaşıl
 - Mimari karar değiştiğinde eski ADR silinmez; `Superseded` olarak işaretlenir.
 - Büyük veya ham sonuçlar yerine tekrar üretme komutları ve anlamlı özet metrikler saklanır.
 - Interview OS içindeki Ledgerly belgesi bu kayıtların mülakat odaklı özetidir; kanonik kaynak değildir.
+
+## Finansal domain başlangıcı
+
+- [Double-entry Ledger Domain Modeli](domain/03-double-entry-ledger.md)
+- [ADR-0004 — Journal Entry ve Posting](adr/0004-journal-entry-and-postings.md)
+- [04 — Ledger Domain Milestone](journey/04-ledger-domain.md)

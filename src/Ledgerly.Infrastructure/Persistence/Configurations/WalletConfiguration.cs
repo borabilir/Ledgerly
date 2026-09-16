@@ -15,6 +15,9 @@ internal sealed class WalletConfiguration : IEntityTypeConfiguration<Wallet>
         builder.HasKey(wallet => wallet.Id)
             .HasName("pk_wallets");
 
+        builder.HasAlternateKey(wallet => new { wallet.Id, wallet.Currency })
+            .HasName("ak_wallets_id_currency");
+
         builder.Property(wallet => wallet.Id)
             .HasColumnName("id")
             .ValueGeneratedNever();

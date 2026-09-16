@@ -51,3 +51,9 @@ Bu dizin yalnızca sistemin son hâlini değil, o hâle neden ve nasıl ulaşıl
 - [LedgerAccount Domain Modeli](domain/04-ledger-account.md)
 - [ADR-0005 — LedgerAccount Factory Kararı](adr/0005-ledger-account-factories.md)
 - [05 — LedgerAccount Milestone](journey/05-ledger-account-domain.md)
+
+## Ledger persistence
+
+- [Kayıt modeli ve database kuralları](architecture/03-ledger-persistence.md)
+- [LAB-002 — Journal Atomicity](labs/002-journal-atomicity/README.md)
+- [06 — Ledger Persistence Milestone](journey/06-ledger-persistence.md)

@@ -68,3 +68,7 @@ Domain doğru başlangıç şeklini korur. WalletId'nin database'de varlığı, 
 İlk kalıcı modelde wallet başına bir müşteri hesabı ve currency başına bir test fon hesabı hedefliyoruz. Bu hedefi constraint ve integration testleriyle ayrıca doğrulayacağız. Journal ile satırlarının atomik kaydı, negatif bakiye kontrolü ve event sourcing hâlâ gelecek konulardır.
 
 Test kanıtı: [05 — LedgerAccount Domain](../journey/05-ledger-account-domain.md). Karar: [ADR-0005](../adr/0005-ledger-account-factories.md).
+
+## Sonraki milestone
+
+16 Eylül 2026: [Ledger persistence](../architecture/03-ledger-persistence.md) ile hesap ve journal tabloları, referans/currency/tekillik kuralları eklendi. Yukarıdaki “henüz” ifadeleri domain milestone sınırını anlatır. Otomatik hesap provisioning ve finansal endpoint hâlâ yok.

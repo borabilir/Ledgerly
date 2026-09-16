@@ -52,3 +52,5 @@ SDK PATH'te görünmüyorsa `~/.dotnet/dotnet` kullanılabilir; doğrulama tam S
 ## Sonraki problem
 
 Hesapları ve journal/posting'leri PostgreSQL'e bağlamak: wallet ve hesap referanslarının varlığı, currency uyumu ve hesap tekilliği. Ardından bir posting kaydı başarısız olduğunda journal'ın tamamının rollback olması gerektiğini gerçek database testiyle göstermek. Test bakiyesi yatırma use-case'i bunun üzerine kurulacak.
+
+Devamı: [06 — Ledger Persistence](06-ledger-persistence.md) tamamlandı; bu sayfa domain adımının tarihsel kaydıdır.

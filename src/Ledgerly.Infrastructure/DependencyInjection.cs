@@ -1,5 +1,7 @@
 using Ledgerly.Application.Abstractions.Persistence;
+using Ledgerly.Application.Ledger;
 using Ledgerly.Application.Wallets;
+using Ledgerly.Infrastructure.Ledger;
 using Ledgerly.Infrastructure.Persistence;
 using Ledgerly.Infrastructure.Wallets;
 using Microsoft.EntityFrameworkCore;
@@ -28,6 +30,8 @@ public static class DependencyInjection
         );
 
         services.AddScoped<IWalletRepository, WalletRepository>();
+        services.AddScoped<ILedgerAccountRepository, LedgerAccountRepository>();
+        services.AddScoped<IJournalEntryRepository, JournalEntryRepository>();
         services.AddScoped<IUnitOfWork>(serviceProvider =>
             serviceProvider.GetRequiredService<LedgerlyDbContext>()
         );

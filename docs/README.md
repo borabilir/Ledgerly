@@ -47,3 +47,7 @@ Bu dizin yalnızca sistemin son hâlini değil, o hâle neden ve nasıl ulaşıl
 - [Double-entry Ledger Domain Modeli](domain/03-double-entry-ledger.md)
 - [ADR-0004 — Journal Entry ve Posting](adr/0004-journal-entry-and-postings.md)
 - [04 — Ledger Domain Milestone](journey/04-ledger-domain.md)
+
+- [LedgerAccount Domain Modeli](domain/04-ledger-account.md)
+- [ADR-0005 — LedgerAccount Factory Kararı](adr/0005-ledger-account-factories.md)
+- [05 — LedgerAccount Milestone](journey/05-ledger-account-domain.md)

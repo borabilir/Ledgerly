@@ -1,5 +1,7 @@
 # 04 — Ledger Domain Modeli
 
+> Sonraki adım (2026-09-16): [LedgerAccount domain modeli](05-ledger-account-domain.md) tamamlandı. Bu belge önceki milestone'u anlatır; hesap persistence'ı henüz yok.
+
 **Durum:** Domain adımı tamamlandı; ledger persistence henüz yok.
 
 **Tarih:** 2026-09-15

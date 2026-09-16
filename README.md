@@ -80,3 +80,5 @@ dotnet test Ledgerly.slnx
 ## Ledger domain modeli
 
 Dengeli `JournalEntry` ve immutable `Posting` modeli eklendi. Bu aşama domain kurallarını kapsar; ledger persistence ve deposit/transfer endpoint'leri henüz yoktur. [Model ve örnekler](docs/domain/03-double-entry-ledger.md), [test kanıtı ve sonraki adım](docs/journey/04-ledger-domain.md).
+
+`LedgerAccount` ile wallet yükümlülük hesabı ve simüle edilmiş test fon hesabının domain modeli de hazır. Hesaplar henüz API tarafından oluşturulmuyor veya saklanmıyor. [Hesap modeli ve sınırları](docs/domain/04-ledger-account.md).

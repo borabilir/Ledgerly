@@ -1,5 +1,7 @@
 # Double-entry Ledger Domain Modeli
 
+> Sonraki adım (2026-09-16): [LedgerAccount domain modeli](04-ledger-account.md) tamamlandı. Bu belge önceki milestone'u anlatır; hesap persistence'ı henüz yok.
+
 **Durum:** Domain modeli uygulandı; persistence ve para hareketi use-case'leri sırada.
 
 **Tarih:** 2026-09-15

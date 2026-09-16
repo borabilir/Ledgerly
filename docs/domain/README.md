@@ -5,3 +5,5 @@ Ubiquitous language, bounded context, aggregate, state machine ve business invar
 Create Wallet üzerinden uygulanan taktik DDD kararları için [DDD ve Create Wallet Domain Modeli](02-ddd-create-wallet.md) belgesine bakın.
 
 Double-entry başlangıcı için [Ledger Domain Modeli](03-double-entry-ledger.md) belgesine bakın.
+
+Hesap kimliği ve türleri için [LedgerAccount](04-ledger-account.md) belgesine bakın.

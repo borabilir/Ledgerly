@@ -3,7 +3,6 @@ using Ledgerly.Application.Ledger;
 using Ledgerly.Domain.Ledger;
 using Ledgerly.Domain.Wallets;
 using Ledgerly.Infrastructure.Persistence;
-using Ledgerly.Infrastructure.Persistence.Records;
 using Ledgerly.IntegrationTests.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -59,9 +58,9 @@ public sealed class LedgerPersistenceTests(PostgresFixture fixture)
         {
             await using var cleanupScope = fixture.Services.CreateAsyncScope();
             var db = cleanupScope.ServiceProvider.GetRequiredService<LedgerlyDbContext>();
-            await db.Set<PostingRecord>().Where(value => value.JournalEntryId == journal.Id).ExecuteDeleteAsync();
-            await db.Set<JournalEntryRecord>().Where(value => value.Id == journal.Id).ExecuteDeleteAsync();
-            await db.Set<LedgerAccountRecord>().Where(value => value.Id == senderAccount.Id || value.Id == receiverAccount.Id)
+            await db.Postings.Where(value => value.JournalEntryId == journal.Id).ExecuteDeleteAsync();
+            await db.JournalEntries.Where(value => value.Id == journal.Id).ExecuteDeleteAsync();
+            await db.LedgerAccounts.Where(value => value.Id == senderAccount.Id || value.Id == receiverAccount.Id)
                 .ExecuteDeleteAsync();
             await db.Wallets.Where(value => value.Id == sender.Id || value.Id == receiver.Id).ExecuteDeleteAsync();
         }
@@ -105,12 +104,14 @@ public sealed class LedgerPersistenceTests(PostgresFixture fixture)
             Assert.Equal(customer.Id, savedCustomer.Id);
             Assert.Equal(wallet.Id, savedCustomer.WalletId);
             Assert.Equal(LedgerAccountType.Liability, savedCustomer.Type);
+            Assert.Equal(LedgerAccountPurpose.Wallet, savedCustomer.Purpose);
             Assert.Equal("TRY", savedCustomer.CurrencyCode);
             Assert.Equal(now, savedCustomer.CreatedAtUtc);
             Assert.NotNull(savedFunding);
             Assert.Equal(funding.Id, savedFunding.Id);
             Assert.Null(savedFunding.WalletId);
             Assert.Equal(LedgerAccountType.Asset, savedFunding.Type);
+            Assert.Equal(LedgerAccountPurpose.TestFunding, savedFunding.Purpose);
             Assert.NotNull(savedJournal);
             Assert.Equal(journal.Id, savedJournal.Id);
             Assert.Equal("TRY", savedJournal.CurrencyCode);

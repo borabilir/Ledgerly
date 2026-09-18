@@ -1,4 +1,5 @@
 using Ledgerly.Application.Wallets.CreateWallet;
+using Ledgerly.Application.Ledger;
 using Microsoft.AspNetCore.Diagnostics;
 
 namespace Ledgerly.Api.Errors;
@@ -23,6 +24,11 @@ internal sealed class ApiExceptionHandler : IExceptionHandler
             WalletAlreadyExistsException => (
                 StatusCodes.Status409Conflict,
                 "Wallet already exists",
+                exception.Message
+            ),
+            LedgerWriteConflictException => (
+                StatusCodes.Status409Conflict,
+                "Ledger write conflict",
                 exception.Message
             ),
             ArgumentException => (

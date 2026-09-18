@@ -56,6 +56,9 @@ public sealed class GetWalletHandlerTests
             return Task.FromResult(wallet?.Id == walletId ? wallet : null);
         }
 
+        public Task<Wallet?> GetForUpdateAsync(Guid walletId, CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException("This handler must not load a wallet for update.");
+
         public Task<bool> ExistsAsync(
             Guid ownerId,
             Currency currency,

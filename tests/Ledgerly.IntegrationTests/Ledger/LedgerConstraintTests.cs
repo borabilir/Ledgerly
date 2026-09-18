@@ -1,4 +1,5 @@
 using Ledgerly.Application.Abstractions.Persistence;
+using Ledgerly.Application.Ledger;
 using Ledgerly.Domain.Ledger;
 using Ledgerly.Domain.Wallets;
 using Ledgerly.Infrastructure.Ledger;
@@ -17,7 +18,7 @@ public sealed class LedgerConstraintTests(PostgresFixture fixture)
     [Theory]
     [InlineData(false, "ux_ledger_accounts_wallet_id")]
     [InlineData(true, "ux_ledger_accounts_test_funding_currency")]
-    public async Task SaveChanges_WhenAccountDuplicates_ShouldPreserveSpecificDatabaseError(bool funding, string constraint)
+    public async Task SaveChanges_WhenAccountDuplicates_ShouldTranslateConflictAndPreserveCause(bool funding, string constraint)
     {
         await using var scope = fixture.Services.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<LedgerlyDbContext>();
@@ -36,8 +37,9 @@ public sealed class LedgerConstraintTests(PostgresFixture fixture)
             accounts.Add(funding ? LedgerAccount.CreateTestFunding(currency, now)
                 : LedgerAccount.CreateForWallet(wallet.Id, currency, now));
 
-            var exception = await Assert.ThrowsAsync<DbUpdateException>(() => ((IUnitOfWork)db).SaveChangesAsync());
-            var postgres = Assert.IsType<PostgresException>(exception.InnerException);
+            var exception = await Assert.ThrowsAsync<LedgerWriteConflictException>(() => ((IUnitOfWork)db).SaveChangesAsync());
+            var update = Assert.IsType<DbUpdateException>(exception.InnerException);
+            var postgres = Assert.IsType<PostgresException>(update.InnerException);
             Assert.Equal(PostgresErrorCodes.UniqueViolation, postgres.SqlState);
             Assert.Equal(constraint, postgres.ConstraintName);
         }
@@ -50,9 +52,9 @@ public sealed class LedgerConstraintTests(PostgresFixture fixture)
     [Theory]
     [InlineData("missing-wallet", "23503", "fk_ledger_accounts_wallet_currency")]
     [InlineData("wallet-currency", "23503", "fk_ledger_accounts_wallet_currency")]
-    [InlineData("asset-with-wallet", "23514", "ck_ledger_accounts_type_wallet")]
-    [InlineData("liability-without-wallet", "23514", "ck_ledger_accounts_type_wallet")]
-    [InlineData("unknown-type", "23514", "ck_ledger_accounts_type_wallet")]
+    [InlineData("asset-with-wallet", "23514", "ck_ledger_accounts_purpose_type_wallet")]
+    [InlineData("liability-without-wallet", "23514", "ck_ledger_accounts_purpose_type_wallet")]
+    [InlineData("unknown-type", "23514", "ck_ledger_accounts_purpose_type_wallet")]
     [InlineData("missing-account", "23503", "fk_postings_account_currency")]
     [InlineData("account-currency", "23503", "fk_postings_account_currency")]
     [InlineData("journal-currency", "23503", "fk_postings_journal_currency")]
@@ -92,26 +94,26 @@ public sealed class LedgerConstraintTests(PostgresFixture fixture)
             var otherCurrencyAccount = Guid.NewGuid();
             // Only a database test fixture, not USD support in the domain/API.
             await db.Database.ExecuteSqlInterpolatedAsync($"""
-                INSERT INTO ledger_accounts (id, wallet_id, type, currency, created_at_utc)
-                VALUES ({otherCurrencyAccount}, NULL, 1, 'USD', {now})
+                INSERT INTO ledger_accounts (id, wallet_id, type, purpose, currency, created_at_utc)
+                VALUES ({otherCurrencyAccount}, NULL, 1, 2, 'USD', {now})
                 """);
 
             Task<int> InvalidWrite() => scenario switch
             {
                 "missing-wallet" => db.Database.ExecuteSqlInterpolatedAsync($"""
-                    INSERT INTO ledger_accounts (id, wallet_id, type, currency, created_at_utc) VALUES ({unknownId}, {Guid.NewGuid()}, 2, 'TRY', {now})
+                    INSERT INTO ledger_accounts (id, wallet_id, type, purpose, currency, created_at_utc) VALUES ({unknownId}, {Guid.NewGuid()}, 2, 1, 'TRY', {now})
                     """),
                 "wallet-currency" => db.Database.ExecuteSqlInterpolatedAsync($"""
-                    INSERT INTO ledger_accounts (id, wallet_id, type, currency, created_at_utc) VALUES ({unknownId}, {unlinkedWallet.Id}, 2, 'USD', {now})
+                    INSERT INTO ledger_accounts (id, wallet_id, type, purpose, currency, created_at_utc) VALUES ({unknownId}, {unlinkedWallet.Id}, 2, 1, 'USD', {now})
                     """),
                 "asset-with-wallet" => db.Database.ExecuteSqlInterpolatedAsync($"""
-                    INSERT INTO ledger_accounts (id, wallet_id, type, currency, created_at_utc) VALUES ({unknownId}, {wallet.Id}, 1, 'TRY', {now})
+                    INSERT INTO ledger_accounts (id, wallet_id, type, purpose, currency, created_at_utc) VALUES ({unknownId}, {wallet.Id}, 1, 1, 'TRY', {now})
                     """),
                 "liability-without-wallet" => db.Database.ExecuteSqlInterpolatedAsync($"""
-                    INSERT INTO ledger_accounts (id, wallet_id, type, currency, created_at_utc) VALUES ({unknownId}, NULL, 2, 'TRY', {now})
+                    INSERT INTO ledger_accounts (id, wallet_id, type, purpose, currency, created_at_utc) VALUES ({unknownId}, NULL, 2, 2, 'TRY', {now})
                     """),
                 "unknown-type" => db.Database.ExecuteSqlInterpolatedAsync($"""
-                    INSERT INTO ledger_accounts (id, wallet_id, type, currency, created_at_utc) VALUES ({unknownId}, NULL, 3, 'TRY', {now})
+                    INSERT INTO ledger_accounts (id, wallet_id, type, purpose, currency, created_at_utc) VALUES ({unknownId}, NULL, 3, 2, 'TRY', {now})
                     """),
                 "delete-wallet" => db.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM wallets WHERE id = {wallet.Id}"),
                 "delete-account" => db.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM ledger_accounts WHERE id = {customer.Id}"),

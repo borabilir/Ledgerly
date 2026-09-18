@@ -7,6 +7,7 @@ public sealed class LedgerAccount
     private LedgerAccount(
         Guid? walletId,
         LedgerAccountType type,
+        LedgerAccountPurpose purpose,
         Currency currency,
         DateTimeOffset createdAt
     )
@@ -14,6 +15,7 @@ public sealed class LedgerAccount
         Id = Guid.NewGuid();
         WalletId = walletId;
         Type = type;
+        Purpose = purpose;
         Currency = currency;
         CreatedAtUtc = createdAt.ToUniversalTime();
     }
@@ -23,6 +25,8 @@ public sealed class LedgerAccount
     public Guid? WalletId { get; }
 
     public LedgerAccountType Type { get; }
+
+    public LedgerAccountPurpose Purpose { get; }
 
     public Currency Currency { get; }
 
@@ -37,13 +41,13 @@ public sealed class LedgerAccount
 
         ArgumentNullException.ThrowIfNull(currency);
 
-        return new LedgerAccount(walletId, LedgerAccountType.Liability, currency, createdAt);
+        return new LedgerAccount(walletId, LedgerAccountType.Liability, LedgerAccountPurpose.Wallet, currency, createdAt);
     }
 
     public static LedgerAccount CreateTestFunding(Currency currency, DateTimeOffset createdAt)
     {
         ArgumentNullException.ThrowIfNull(currency);
 
-        return new LedgerAccount(null, LedgerAccountType.Asset, currency, createdAt);
+        return new LedgerAccount(null, LedgerAccountType.Asset, LedgerAccountPurpose.TestFunding, currency, createdAt);
     }
 }

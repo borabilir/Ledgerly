@@ -31,7 +31,7 @@ Bedel: üç küçük tablo modeli ve açık dönüşüm kodu. Generic mapper vey
 
 | Tablo | Anahtar | Temel veri |
 |---|---|---|
-| ledger_accounts | id | wallet_id nullable, type, currency, created_at_utc |
+| ledger_accounts | id | wallet_id nullable, type, purpose, currency, created_at_utc |
 | journal_entries | id | currency, created_at_utc |
 | postings | journal_entry_id + sequence | account_id, currency, direction, amount |
 
@@ -45,8 +45,8 @@ Amount numeric(19,4), zaman timestamp with time zone olarak saklanır. Currency,
 |---|---|
 | Wallet'a bağlı hesap, aynı para birimindeki mevcut wallet'a ait olmalı | (wallet_id, currency) → wallets(id, currency) foreign key |
 | Wallet başına en fazla bir müşteri hesabı | wallet_id üzerinde null olmayan kayıtları kapsayan unique index |
-| Currency başına en fazla bir test fon hesabı | currency üzerinde wallet_id null kayıtları kapsayan unique index |
-| Asset wallet'sız, Liability wallet'a bağlı olmalı | type/wallet_id check constraint |
+| Currency başına en fazla bir test fon hesabı | currency üzerinde purpose = TestFunding kayıtlarını kapsayan unique index |
+| Wallet amacı Liability + dolu WalletId; TestFunding amacı Asset + boş WalletId olmalı | purpose/type/wallet_id check constraint ve zorunlu purpose sütunu |
 | Posting'in hesabı ve journal'ı var ve aynı currency'de olmalı | Her iki tarafa (id, currency) üzerinden foreign key |
 | Tutar pozitif, yön Debit/Credit, sıra negatif değil | Posting check constraint'leri |
 | Aynı journal/sıra iki kez yazılamaz | Composite primary key |
@@ -54,7 +54,7 @@ Amount numeric(19,4), zaman timestamp with time zone olarak saklanır. Currency,
 
 Composite foreign key için wallets, ledger_accounts ve journal_entries üzerinde (id, currency) alternate key'leri vardır. Id zaten tekildir; bu ek anahtarlar currency'nin de ilişkiye katılması içindir. Ek index alanı/yazma maliyeti kabul edildi.
 
-Fon hesabı için wallet_id null olması bilinçlidir. Check constraint bunun sadece Asset için geçerli olmasını sağlar. Yeni hesap rolleri gelirse bu kapalı iki tür varsayımı ve filtreli index yeniden tasarlanmalıdır.
+Fon hesabı için wallet_id null olması bilinçlidir. [Purpose adımı](../domain/05-ledger-account-purpose.md) ile kullanım amacı ayrıca kaydedilir; test fonu artık yalnızca boş WalletId'den çıkarılmaz. Yeni hesap rolleri gelirse enum, factory ve check constraint birlikte genişletilir.
 
 ## Atomik kayıt
 
@@ -70,7 +70,7 @@ Repository okumaları AsNoTracking çalışır, Application'a LedgerAccountSnaps
 
 CancellationToken database okumasına iletilir. Wallet hesabı, fon hesabı veya journal bulunamazsa null döner. Yeni HTTP endpoint/handler eklenmedi.
 
-Ledger constraint ihlalleri DbUpdateException/PostgresException olarak kalır. Önceki WalletAlreadyExistsException çevirisi yalnızca mevcut wallet owner/currency constraint'ine uygulanır. Ledger hesap duplicate'lerinin yanlış wallet hatasına çevrilmediği iki testle doğrulandı.
+Persistence ilk eklendiğinde ledger constraint ihlalleri DbUpdateException/PostgresException olarak kalıyordu. Test yatırması adımında yalnızca iki hesap unique constraint ihlali LedgerWriteConflictException/409 olarak çevrilmeye başlandı. WalletAlreadyExistsException çevirisi yalnızca wallet owner/currency constraint'ine uygulanır. Diğer hatalar bu çeviriye girmez. [Güncel karar](../adr/0007-test-deposit-and-balance-concurrency.md).
 
 ## Garanti sınırları
 
@@ -80,7 +80,7 @@ Internal EF modelleri değiştirilebilir. Public repository update/delete sunmuy
 
 TRY dışındaki para birimleri Domain/API tarafından desteklenmez. Currency eşleşme negatif testleri için transaction içinde SQL ile bir USD fixture satırı kurulur; test sonunda geri alınır. Bu ürün özelliği değildir.
 
-Wallet.Balance güncellenmez, yeterli bakiye kontrolü yapılmaz. Mevcut POST /api/wallets otomatik ledger hesabı açmaz. Eski wallet'lar için hesap backfill'i ve test fon hesabı seed'i yapılmadı. Deposit, transfer, idempotency, kalıcı immutable ledger ve event sourcing sonraki ayrı işlerdir.
+Persistence repository'leri kendi başına Wallet.Balance güncellemez. [Test yatırması](../journey/07-test-deposit.md) handler'ı artık bakiyeyi, eksik hesapları ve journal'ı birlikte kaydeder. POST /api/wallets otomatik ledger hesabı açmaz; hesaplar ilk yatırmada hazırlanır. Transfer, yeterli bakiye kontrolü, idempotency, kalıcı immutable ledger ve event sourcing sonraki ayrı işlerdir.
 
 ## Doğrulama
 

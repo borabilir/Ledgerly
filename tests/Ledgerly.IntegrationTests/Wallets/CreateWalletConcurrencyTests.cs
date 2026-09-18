@@ -114,6 +114,9 @@ public sealed class CreateWalletConcurrencyTests
             return _inner.GetByIdAsync(walletId, cancellationToken);
         }
 
+        public Task<Wallet?> GetForUpdateAsync(Guid walletId, CancellationToken cancellationToken = default) =>
+            _inner.GetForUpdateAsync(walletId, cancellationToken);
+
         public async Task<bool> ExistsAsync(
             Guid ownerId,
             Currency currency,

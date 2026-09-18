@@ -1,6 +1,6 @@
 # LedgerAccount: Hareket Hangi Hesaba Ait?
 
-**Durum:** Domain modeli uygulandı. Hesap persistence'ı ve API akışına bağlantısı henüz yok.
+**Bu belgenin kapsamı:** LedgerAccount domain adımının tarihsel kaydı. Sonrasında [persistence](../architecture/03-ledger-persistence.md) ve [ilk test yatırmasında hesap hazırlama](../journey/07-test-deposit.md) tamamlandı. Aşağıdaki sınırlar domain adımına aittir.
 
 **Tarih:** 2026-09-16
 
@@ -71,4 +71,6 @@ Test kanıtı: [05 — LedgerAccount Domain](../journey/05-ledger-account-domain
 
 ## Sonraki milestone
 
-16 Eylül 2026: [Ledger persistence](../architecture/03-ledger-persistence.md) ile hesap ve journal tabloları, referans/currency/tekillik kuralları eklendi. Yukarıdaki “henüz” ifadeleri domain milestone sınırını anlatır. Otomatik hesap provisioning ve finansal endpoint hâlâ yok.
+16 Eylül 2026: [Ledger persistence](../architecture/03-ledger-persistence.md) ile hesap ve journal tabloları, referans/currency/tekillik kuralları eklendi. Ardından [test yatırması](../journey/07-test-deposit.md) eksik hesapları ilk kullanımda hazırlamaya başladı. Yukarıdaki “henüz” ifadeleri domain milestone sınırını anlatır.
+
+17 Eylül 2026: Hesabın kullanım amacı [Purpose](05-ledger-account-purpose.md) alanıyla açıkça modellendi. Type muhasebe türünü, Purpose ise Wallet/TestFunding rolünü belirtir.

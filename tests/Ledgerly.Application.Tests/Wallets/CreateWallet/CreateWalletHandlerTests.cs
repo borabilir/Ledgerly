@@ -86,6 +86,9 @@ public sealed class CreateWalletHandlerTests
             throw new NotSupportedException("Create Wallet must not read by ID.");
         }
 
+        public Task<Wallet?> GetForUpdateAsync(Guid walletId, CancellationToken cancellationToken = default) =>
+            throw new NotSupportedException("This handler must not load a wallet for update.");
+
         public Task<bool> ExistsAsync(
             Guid ownerId,
             Currency currency,

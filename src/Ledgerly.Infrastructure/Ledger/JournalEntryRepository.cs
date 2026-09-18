@@ -11,7 +11,7 @@ internal sealed class JournalEntryRepository(LedgerlyDbContext dbContext) : IJou
     public void Add(JournalEntry journal)
     {
         ArgumentNullException.ThrowIfNull(journal);
-        dbContext.Set<JournalEntryRecord>().Add(new JournalEntryRecord
+        dbContext.JournalEntries.Add(new JournalEntryRecord
         {
             Id = journal.Id,
             Currency = journal.Currency,
@@ -30,7 +30,7 @@ internal sealed class JournalEntryRepository(LedgerlyDbContext dbContext) : IJou
 
     public async Task<JournalEntrySnapshot?> GetByIdAsync(Guid journalId, CancellationToken cancellationToken = default)
     {
-        var record = await dbContext.Set<JournalEntryRecord>().AsNoTracking()
+        var record = await dbContext.JournalEntries.AsNoTracking()
             .Include(journal => journal.Postings)
             .SingleOrDefaultAsync(journal => journal.Id == journalId, cancellationToken);
         if (record is null)

@@ -3,6 +3,7 @@ using System;
 using Ledgerly.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Ledgerly.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(LedgerlyDbContext))]
-    partial class LedgerlyDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260916043310_GuardWalletBalanceConcurrency")]
+    partial class GuardWalletBalanceConcurrency
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -106,10 +109,6 @@ namespace Ledgerly.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(3)")
                         .HasColumnName("currency");
 
-                    b.Property<int>("Purpose")
-                        .HasColumnType("integer")
-                        .HasColumnName("purpose");
-
                     b.Property<int>("Type")
                         .HasColumnType("integer")
                         .HasColumnName("type");
@@ -127,7 +126,7 @@ namespace Ledgerly.Infrastructure.Persistence.Migrations
                     b.HasIndex("Currency")
                         .IsUnique()
                         .HasDatabaseName("ux_ledger_accounts_test_funding_currency")
-                        .HasFilter("purpose = 2");
+                        .HasFilter("wallet_id IS NULL");
 
                     b.HasIndex("WalletId")
                         .IsUnique()
@@ -138,7 +137,7 @@ namespace Ledgerly.Infrastructure.Persistence.Migrations
 
                     b.ToTable("ledger_accounts", null, t =>
                         {
-                            t.HasCheckConstraint("ck_ledger_accounts_purpose_type_wallet", "(purpose = 1 AND type = 2 AND wallet_id IS NOT NULL) OR (purpose = 2 AND type = 1 AND wallet_id IS NULL)");
+                            t.HasCheckConstraint("ck_ledger_accounts_type_wallet", "(type = 1 AND wallet_id IS NULL) OR (type = 2 AND wallet_id IS NOT NULL)");
                         });
                 });
 

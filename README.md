@@ -79,8 +79,10 @@ dotnet test Ledgerly.slnx
 
 ## Ledger domain modeli
 
-Dengeli `JournalEntry` ve immutable `Posting` modeli eklendi. Domain kurallarına ek olarak ledger persistence tamamlandı; deposit/transfer endpoint'leri henüz yoktur. [Model ve örnekler](docs/domain/03-double-entry-ledger.md), [test kanıtı ve sonraki adım](docs/journey/04-ledger-domain.md).
+Dengeli `JournalEntry` ve immutable `Posting` modeli ile ledger persistence tamamlandı. Development/test ortamında [test bakiyesi yatırma](docs/journey/07-test-deposit.md) endpoint'i de hazır; transfer henüz yoktur. [Model ve örnekler](docs/domain/03-double-entry-ledger.md), [ledger domain test kanıtı](docs/journey/04-ledger-domain.md).
 
-`LedgerAccount` ile wallet yükümlülük hesabı ve simüle edilmiş test fon hesabının domain modeli de hazır. Hesaplar repository üzerinden kaydedilip okunabiliyor; mevcut wallet API'si otomatik ledger hesabı oluşturmuyor. [Hesap modeli ve sınırları](docs/domain/04-ledger-account.md).
+`LedgerAccount` ile wallet yükümlülük hesabı ve simüle edilmiş test fon hesabının domain modeli de hazır. POST `/api/wallets` yalnızca wallet oluşturur; eksik ledger hesapları ilk test yatırmasında hazırlanır. [Hesap modeli ve sınırları](docs/domain/04-ledger-account.md).
 
 Hesap/journal/posting tabloları ve atomik kayıt için [persistence belgesine](docs/architecture/03-ledger-persistence.md), yarım kayıt deneyini çalıştırmak için [LAB-002](docs/labs/002-journal-atomicity/README.md) sayfasına bakın.
+
+Hesabın muhasebe türü `Type`, kullanım amacı ise `Purpose` ile tutulur. Test fonu sorgusu açıkça `TestFunding` amacını arar. [Type ve Purpose ayrımı](docs/domain/05-ledger-account-purpose.md).

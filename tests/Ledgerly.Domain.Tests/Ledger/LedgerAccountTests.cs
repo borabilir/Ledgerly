@@ -20,6 +20,7 @@ public sealed class LedgerAccountTests
         Assert.NotEqual(walletId, account.Id);
         Assert.Equal(walletId, account.WalletId);
         Assert.Equal(LedgerAccountType.Liability, account.Type);
+        Assert.Equal(LedgerAccountPurpose.Wallet, account.Purpose);
         Assert.Equal(Try, account.Currency);
         Assert.Equal(Now.ToUniversalTime(), account.CreatedAtUtc);
         Assert.Equal(TimeSpan.Zero, account.CreatedAtUtc.Offset);
@@ -51,6 +52,7 @@ public sealed class LedgerAccountTests
         Assert.NotEqual(Guid.Empty, account.Id);
         Assert.Null(account.WalletId);
         Assert.Equal(LedgerAccountType.Asset, account.Type);
+        Assert.Equal(LedgerAccountPurpose.TestFunding, account.Purpose);
         Assert.Equal(Try, account.Currency);
         Assert.Equal(Now.ToUniversalTime(), account.CreatedAtUtc);
         Assert.Equal(TimeSpan.Zero, account.CreatedAtUtc.Offset);

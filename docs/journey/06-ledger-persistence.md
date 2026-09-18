@@ -46,3 +46,5 @@ dotnet test Ledgerly.slnx
 ## Sonraki adım
 
 Test bakiyesi yatırma use-case'i: hesapları nasıl hazırlayacağımız, mevcut wallet'lara hesap açma davranışı, test fon hesabı ve wallet bakiyesiyle ledger'ın aynı transaction sınırında nasıl tutulacağı kararlaştırılacak. Şu an doğrudan repository üzerinden kalıcı kayıt mümkündür; yeni finansal HTTP endpoint'i veya otomatik bakiye değişimi yoktur.
+
+**Takip:** Burada planlanan test yatırması [07. milestone](07-test-deposit.md) ile tamamlandı. Yukarıdaki sonuçlar persistence adımının tarihsel kaydıdır.

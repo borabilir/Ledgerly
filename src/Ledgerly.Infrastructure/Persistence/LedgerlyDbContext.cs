@@ -1,7 +1,9 @@
 using Ledgerly.Application.Abstractions.Persistence;
+using Ledgerly.Application.Ledger;
 using Ledgerly.Application.Wallets.CreateWallet;
 using Ledgerly.Domain.Wallets;
 using Ledgerly.Infrastructure.Persistence.Configurations;
+using Ledgerly.Infrastructure.Persistence.Records;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 
@@ -15,6 +17,9 @@ public sealed class LedgerlyDbContext : DbContext, IUnitOfWork
     }
 
     public DbSet<Wallet> Wallets => Set<Wallet>();
+    internal DbSet<LedgerAccountRecord> LedgerAccounts => Set<LedgerAccountRecord>();
+    internal DbSet<JournalEntryRecord> JournalEntries => Set<JournalEntryRecord>();
+    internal DbSet<PostingRecord> Postings => Set<PostingRecord>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -28,6 +33,21 @@ public sealed class LedgerlyDbContext : DbContext, IUnitOfWork
         try
         {
             await base.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException exception) when (
+            exception.Entries.Count > 0 && exception.Entries.All(entry => entry.Entity is Wallet))
+        {
+            throw new LedgerWriteConflictException(exception);
+        }
+        catch (DbUpdateException exception) when (
+            exception.InnerException is PostgresException
+            {
+                SqlState: PostgresErrorCodes.UniqueViolation,
+                ConstraintName: LedgerAccountConfiguration.WalletUniqueIndexName
+                    or LedgerAccountConfiguration.TestFundingUniqueIndexName,
+            })
+        {
+            throw new LedgerWriteConflictException(exception);
         }
         catch (DbUpdateException exception) when (
             exception.InnerException is PostgresException

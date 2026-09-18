@@ -57,3 +57,15 @@ Bu dizin yalnızca sistemin son hâlini değil, o hâle neden ve nasıl ulaşıl
 - [Kayıt modeli ve database kuralları](architecture/03-ledger-persistence.md)
 - [LAB-002 — Journal Atomicity](labs/002-journal-atomicity/README.md)
 - [06 — Ledger Persistence Milestone](journey/06-ledger-persistence.md)
+
+## Test bakiyesi yatırma
+
+- [07 — Test yatırması](journey/07-test-deposit.md)
+- [LAB-003 — Bakiye yarışı](labs/003-test-deposit/README.md)
+- [ADR-0007 — İlk kullanımda hesap açma ve concurrency](adr/0007-test-deposit-and-balance-concurrency.md)
+
+## Hesabın amacı
+
+- [Type ve Purpose ayrımı](domain/05-ledger-account-purpose.md)
+- [ADR-0008 — Açık hesap amacı](adr/0008-explicit-ledger-account-purpose.md)
+- [08 — Purpose migration ve testleri](journey/08-ledger-account-purpose.md)

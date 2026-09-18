@@ -58,14 +58,14 @@ public sealed class JournalAtomicityTests(PostgresFixture fixture, ITestOutputHe
             if (saveSeparately)
             {
                 // Deliberately broken persistence workflow, retained only as a lab reproduction.
-                writer.Set<JournalEntryRecord>().Add(new JournalEntryRecord
+                writer.JournalEntries.Add(new JournalEntryRecord
                 {
                     Id = journal.Id, Currency = currency, CreatedAtUtc = now,
                 });
                 await writer.SaveChangesAsync();
-                writer.Set<PostingRecord>().Add(ToRecord(journal, 0));
+                writer.Postings.Add(ToRecord(journal, 0));
                 await writer.SaveChangesAsync();
-                writer.Set<PostingRecord>().Add(ToRecord(journal, 1));
+                writer.Postings.Add(ToRecord(journal, 1));
                 exception = await Assert.ThrowsAsync<DbUpdateException>(() => writer.SaveChangesAsync());
             }
             else
@@ -83,12 +83,12 @@ public sealed class JournalAtomicityTests(PostgresFixture fixture, ITestOutputHe
 
             // No outer test transaction: a fresh connection observes the committed outcome.
             await using var observer = new LedgerlyDbContext(observerOptions);
-            var journalCount = await observer.Set<JournalEntryRecord>().CountAsync(value => value.Id == journal.Id);
-            var postingCount = await observer.Set<PostingRecord>().CountAsync(value => value.JournalEntryId == journal.Id);
+            var journalCount = await observer.JournalEntries.CountAsync(value => value.Id == journal.Id);
+            var postingCount = await observer.Postings.CountAsync(value => value.JournalEntryId == journal.Id);
             var expectedCount = saveSeparately ? 1 : 0;
             Assert.Equal(expectedCount, journalCount);
             Assert.Equal(expectedCount, postingCount);
-            Assert.True(await observer.Set<LedgerAccountRecord>().AnyAsync(value => value.Id == account.Id));
+            Assert.True(await observer.LedgerAccounts.AnyAsync(value => value.Id == account.Id));
             Assert.Equal(0m, await observer.Wallets.Where(value => value.Id == wallet.Id)
                 .Select(value => value.Balance).SingleAsync());
             output.WriteLine($"Mode: {(saveSeparately ? "separate saves" : "single unit of work")}");
@@ -99,9 +99,9 @@ public sealed class JournalAtomicityTests(PostgresFixture fixture, ITestOutputHe
         finally
         {
             await using var cleanup = new LedgerlyDbContext(observerOptions);
-            await cleanup.Set<PostingRecord>().Where(value => value.JournalEntryId == journal.Id).ExecuteDeleteAsync();
-            await cleanup.Set<JournalEntryRecord>().Where(value => value.Id == journal.Id).ExecuteDeleteAsync();
-            await cleanup.Set<LedgerAccountRecord>().Where(value => value.Id == account.Id).ExecuteDeleteAsync();
+            await cleanup.Postings.Where(value => value.JournalEntryId == journal.Id).ExecuteDeleteAsync();
+            await cleanup.JournalEntries.Where(value => value.Id == journal.Id).ExecuteDeleteAsync();
+            await cleanup.LedgerAccounts.Where(value => value.Id == account.Id).ExecuteDeleteAsync();
             await cleanup.Wallets.Where(value => value.Id == wallet.Id).ExecuteDeleteAsync();
         }
     }

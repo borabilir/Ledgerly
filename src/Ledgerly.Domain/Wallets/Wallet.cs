@@ -31,6 +31,23 @@ public sealed class Wallet
 
     public DateTimeOffset CreatedAtUtc { get; private set; }
 
+    public void Credit(decimal amount)
+    {
+        const decimal maximumBalance = 999_999_999_999_999.9999m;
+        if (amount <= 0m || amount > maximumBalance || decimal.Round(amount, 4) != amount)
+        {
+            throw new ArgumentOutOfRangeException(nameof(amount),
+                "Amount must be positive and fit within 19 digits with up to 4 decimal places.");
+        }
+
+        if (Balance > maximumBalance - amount)
+        {
+            throw new ArgumentOutOfRangeException(nameof(amount), "The resulting wallet balance exceeds the supported limit.");
+        }
+
+        Balance += amount;
+    }
+
     public static Wallet Create(Guid ownerId, Currency currency, DateTimeOffset createdAt)
     {
         if (ownerId == Guid.Empty)

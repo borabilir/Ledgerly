@@ -36,6 +36,10 @@ public sealed class ApiDocumentationTests
             await openApiResponse.Content.ReadAsStreamAsync()
         );
         var paths = document.RootElement.GetProperty("paths");
+        var depositResponses = paths.GetProperty("/api/wallets/{walletId}/test-deposits")
+            .GetProperty("post").GetProperty("responses");
+        foreach (var status in new[] { "200", "400", "404", "409", "500" })
+            Assert.True(depositResponses.TryGetProperty(status, out _));
         var getResponses = paths.GetProperty("/api/wallets/{walletId}")
             .GetProperty("get").GetProperty("responses");
         Assert.True(getResponses.TryGetProperty("200", out _));

@@ -7,6 +7,9 @@ public interface IWalletRepository
     // Returns a read-only snapshot; changes to this instance are not tracked for saving.
     Task<Wallet?> GetByIdAsync(Guid walletId, CancellationToken cancellationToken = default);
 
+    // Tracked for saving changes in the current unit of work; does not acquire a row lock.
+    Task<Wallet?> GetForUpdateAsync(Guid walletId, CancellationToken cancellationToken = default);
+
     Task<bool> ExistsAsync(
         Guid ownerId,
         Currency currency,

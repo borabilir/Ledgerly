@@ -43,6 +43,7 @@ internal sealed class WalletConfiguration : IEntityTypeConfiguration<Wallet>
         builder.Property(wallet => wallet.Balance)
             .HasColumnName("balance")
             .HasPrecision(19, 4)
+            .IsConcurrencyToken()
             .IsRequired();
 
         builder.Property(wallet => wallet.CreatedAtUtc)

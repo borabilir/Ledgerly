@@ -15,5 +15,6 @@
 - [ADR-0011 — Transferde Kalıcı Idempotency Kaydı](0011-transfer-idempotency.md)
 - [ADR-0012 — Transfer Eventleri İçin Transactional Outbox](0012-transactional-outbox.md)
 - [ADR-0013 — Outbox Eventleri İçin RabbitMQ Publisher](0013-rabbitmq-publisher.md)
+- [ADR-0014 — Transfer History İçin Ayrı Worker ve MongoDB Read Model](0014-transfer-history-worker-and-mongodb.md)
 
 Mimari kararlar sıralı `ADR-NNN-kisa-baslik.md` dosyaları olarak kaydedilir. Yeni kayıtlar için [ADR şablonu](../templates/adr-template.md) kullanılır.

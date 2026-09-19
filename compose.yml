@@ -35,6 +35,24 @@ services:
       timeout: 5s
       retries: 12
 
+  mongodb:
+    image: mongo:8.3.11-noble
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${LEDGERLY_MONGODB_USER:-ledgerly}
+      MONGO_INITDB_ROOT_PASSWORD: ${LEDGERLY_MONGODB_PASSWORD:-ledgerly_dev}
+    ports:
+      - "${LEDGERLY_MONGODB_PORT:-27017}:27017"
+    volumes:
+      - ledgerly_mongodb_data:/data/db
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - 'mongosh --quiet --username "$${MONGO_INITDB_ROOT_USERNAME}" --password "$${MONGO_INITDB_ROOT_PASSWORD}" --authenticationDatabase admin --eval "quit(db.adminCommand({ ping: 1 }).ok ? 0 : 2)"'
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
 volumes:
   ledgerly_postgres_data:
   ledgerly_rabbitmq_data:
+  ledgerly_mongodb_data:

@@ -18,6 +18,28 @@
         "pattern": "\\bNow listening on:\\s+https://\\S+",
         "uriFormat": "https://localhost:7092/scalar/v1"
       }
+    },
+    {
+      "name": "Ledgerly.TransferHistory.Worker",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "Ledgerly: prepare Transfer History Worker",
+      "program": "${workspaceFolder}/src/Ledgerly.TransferHistory.Worker/bin/Debug/net10.0/Ledgerly.TransferHistory.Worker.dll",
+      "cwd": "${workspaceFolder}/src/Ledgerly.TransferHistory.Worker",
+      "launchSettingsProfile": "Ledgerly.TransferHistory.Worker",
+      "launchSettingsFilePath": "${workspaceFolder}/src/Ledgerly.TransferHistory.Worker/Properties/launchSettings.json",
+      "stopAtEntry": false,
+      "console": "integratedTerminal"
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Ledgerly: API + Transfer History Worker",
+      "configurations": [
+        "Ledgerly.Api (HTTPS)",
+        "Ledgerly.TransferHistory.Worker"
+      ],
+      "stopAll": true
     }
   ]
 }

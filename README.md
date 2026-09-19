@@ -37,6 +37,14 @@ dotnet ef database update `
 dotnet run --project src/Ledgerly.Api/Ledgerly.Api.csproj --launch-profile https
 ```
 
+Transfer History Worker ayrı bir terminalde çalıştırılır:
+
+```powershell
+dotnet run `
+  --project src/Ledgerly.TransferHistory.Worker/Ledgerly.TransferHistory.Worker.csproj `
+  --launch-profile Ledgerly.TransferHistory.Worker
+```
+
 Development ortamında API arayüzü `https://localhost:7092/scalar/v1`, OpenAPI belgesi ise `https://localhost:7092/openapi/v1.json` adresindedir.
 
 İlk endpoint:
@@ -96,3 +104,5 @@ Transfer isteklerinde `Idempotency-Key` zorunludur. Aynı key ve payload tekrarl
 Başarılı transferin `wallet.transfer-completed.v1` eventi, transfer ve journal ile aynı PostgreSQL transaction'ında Outbox'a yazılır. Background worker pending mesajları publish eder ve broker hatasında kalıcı retry bilgisi tutar. [Transactional Outbox deneyi](docs/labs/007-transactional-outbox/README.md).
 
 Outbox worker mesajları durable RabbitMQ topic exchange'ine gönderir. Publisher confirm alınamazsa mesaj işlenmiş sayılmaz ve sonraki turda yeniden denenir. Gerçek broker kurulumu, exchange/queue ayrımı ve integration testi için [RabbitMQ publisher deneyine](docs/labs/008-rabbitmq-publisher/README.md) bakın. Yönetim ekranı development ortamında `http://localhost:15672` adresindedir.
+
+Transfer history için ayrı çalıştırılabilen worker ve ona ait MongoDB read-model altyapısı hazırdır. Bu milestone henüz RabbitMQ tüketimi veya doküman yazımı yapmaz; yalnızca ikinci deployable'ın configuration ve MongoDB bağlantı zeminini kurar. [Kurulum ve mimari karar](docs/journey/14-transfer-history-worker-bootstrap.md).

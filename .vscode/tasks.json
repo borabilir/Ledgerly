@@ -56,12 +56,34 @@
       }
     },
     {
+      "label": "Ledgerly: build Transfer History Worker",
+      "type": "process",
+      "command": "dotnet",
+      "args": [
+        "build",
+        "src/Ledgerly.TransferHistory.Worker/Ledgerly.TransferHistory.Worker.csproj"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": "$msCompile"
+    },
+    {
       "label": "Ledgerly: prepare API",
       "dependsOrder": "sequence",
       "dependsOn": [
         "Ledgerly: infrastructure start",
         "Ledgerly: tool restore",
         "Ledgerly: database update"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "Ledgerly: prepare Transfer History Worker",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "Ledgerly: infrastructure start",
+        "Ledgerly: build Transfer History Worker"
       ],
       "problemMatcher": []
     },

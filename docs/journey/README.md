@@ -16,5 +16,6 @@
 - [11 — Transfer Idempotency](11-transfer-idempotency.md)
 - [12 — Transactional Outbox](12-transactional-outbox.md)
 - [13 — RabbitMQ Publisher](13-rabbitmq-publisher.md)
+- [14 — Transfer History Worker ve MongoDB Başlangıcı](14-transfer-history-worker-bootstrap.md)
 
 Milestone'lar ve projenin kronolojik gelişimi burada tutulur. Her kayıt başlangıç durumunu, yapılan değişiklikleri, doğrulamayı ve bir sonraki adımı gösterir.

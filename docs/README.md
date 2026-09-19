@@ -37,6 +37,8 @@ Bu dizin yalnızca sistemin son hâlini değil, o hâle neden ve nasıl ulaşıl
 - [ADR-0012 — Transfer Eventleri İçin Transactional Outbox](adr/0012-transactional-outbox.md)
 - [LAB-008 — Gerçek RabbitMQ Publisher](labs/008-rabbitmq-publisher/README.md)
 - [ADR-0013 — Outbox Eventleri İçin RabbitMQ Publisher](adr/0013-rabbitmq-publisher.md)
+- [14 — Transfer History Worker ve MongoDB Başlangıcı](journey/14-transfer-history-worker-bootstrap.md)
+- [ADR-0014 — Ayrı Worker ve MongoDB Read Model](adr/0014-transfer-history-worker-and-mongodb.md)
 
 ## Kayıt kuralları
 

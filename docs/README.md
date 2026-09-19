@@ -33,6 +33,8 @@ Bu dizin yalnızca sistemin son hâlini değil, o hâle neden ve nasıl ulaşıl
 - [ADR-0003 — Concurrent Create Wallet İçin Dar Exception Translation](adr/0003-concurrent-create-wallet-conflict.md)
 - [LAB-006 — Transfer Retry ve Idempotency](labs/006-transfer-idempotency/README.md)
 - [ADR-0011 — Transferde Kalıcı Idempotency Kaydı](adr/0011-transfer-idempotency.md)
+- [LAB-007 — DB Commit Oldu Ama Event Yayınlanamadı](labs/007-transactional-outbox/README.md)
+- [ADR-0012 — Transfer Eventleri İçin Transactional Outbox](adr/0012-transactional-outbox.md)
 
 ## Kayıt kuralları
 

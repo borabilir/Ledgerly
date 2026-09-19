@@ -1,9 +1,11 @@
 using Ledgerly.Application.Abstractions.Persistence;
+using Ledgerly.Application.Abstractions.Messaging;
 using Ledgerly.Application.Ledger;
 using Ledgerly.Application.Wallets;
 using Ledgerly.Application.Wallets.TestDeposit;
 using Ledgerly.Application.Wallets.TransferWallet;
 using Ledgerly.Infrastructure.Ledger;
+using Ledgerly.Infrastructure.Messaging;
 using Ledgerly.Infrastructure.Persistence;
 using Ledgerly.Infrastructure.Wallets;
 using Microsoft.EntityFrameworkCore;
@@ -36,6 +38,14 @@ public static class DependencyInjection
         services.AddScoped<IJournalEntryRepository, JournalEntryRepository>();
         services.AddScoped<ITestDepositOperationRepository, TestDepositOperationRepository>();
         services.AddScoped<IWalletTransferRepository, WalletTransferRepository>();
+        services.AddScoped<IOutboxMessageWriter, OutboxMessageWriter>();
+        services.AddScoped<IIntegrationEventPublisher, LoggingIntegrationEventPublisher>();
+        services.AddScoped<OutboxProcessor>();
+        services.Configure<OutboxOptions>(configuration.GetSection(OutboxOptions.SectionName));
+        if (configuration.GetValue("Outbox:Enabled", true))
+        {
+            services.AddHostedService<OutboxPublisherWorker>();
+        }
         services.AddScoped<IUnitOfWork>(serviceProvider =>
             serviceProvider.GetRequiredService<LedgerlyDbContext>()
         );

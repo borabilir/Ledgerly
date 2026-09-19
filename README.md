@@ -92,3 +92,5 @@ Test yatırmasında tekrar deneme için `Idempotency-Key` zorunludur: aynı key 
 Wallet-to-wallet TRY transferi kaynak ve hedef bakiyeyi dengeli journal ile tek transaction'da değiştirir. Aynı kaynak bakiyeyi harcayan paralel transferlerden yalnızca biri commit edilir. [Double-spending deneyi](docs/labs/005-wallet-transfer-double-spending/README.md).
 
 Transfer isteklerinde `Idempotency-Key` zorunludur. Aynı key ve payload tekrarlandığında yeni para hareketi yapılmadan ilk `TransferId` ve makbuz döner; farklı payload aynı key'i kullanırsa `409` alınır. [Transfer retry deneyi](docs/labs/006-transfer-idempotency/README.md).
+
+Başarılı transferin `wallet.transfer-completed.v1` eventi, transfer ve journal ile aynı PostgreSQL transaction'ında Outbox'a yazılır. Background worker pending mesajları publish eder ve broker hatasında kalıcı retry bilgisi tutar. [Transactional Outbox deneyi](docs/labs/007-transactional-outbox/README.md).

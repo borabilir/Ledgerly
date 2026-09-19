@@ -24,6 +24,7 @@ public sealed class LedgerlyDbContext : DbContext, IUnitOfWork
     internal DbSet<PostingRecord> Postings => Set<PostingRecord>();
     internal DbSet<TestDepositOperationRecord> TestDepositOperations => Set<TestDepositOperationRecord>();
     internal DbSet<WalletTransferRecord> WalletTransfers => Set<WalletTransferRecord>();
+    internal DbSet<OutboxMessageRecord> OutboxMessages => Set<OutboxMessageRecord>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

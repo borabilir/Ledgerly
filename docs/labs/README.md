@@ -10,3 +10,4 @@ Gerçek hayat problemlerini kontrollü ve tekrar üretilebilir biçimde oluştur
 - [LAB-004 — Tekrarlanan yatırma isteği (idempotency)](004-test-deposit-idempotency/README.md)
 - [LAB-005 — Wallet transfer ve double-spending](005-wallet-transfer-double-spending/README.md)
 - [LAB-006 — Tekrarlanan transfer isteği ve idempotency](006-transfer-idempotency/README.md)
+- [LAB-007 — Transactional Outbox ve kayıp event](007-transactional-outbox/README.md)

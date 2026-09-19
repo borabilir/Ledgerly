@@ -1,4 +1,5 @@
 using Ledgerly.Application.Abstractions.Persistence;
+using Ledgerly.Application.Abstractions.Messaging;
 using Ledgerly.Application.Ledger;
 using Ledgerly.Domain.Ledger;
 using Ledgerly.Domain.Wallets;
@@ -11,6 +12,7 @@ public sealed class TransferWalletHandler(
     IJournalEntryRepository journals,
     IWalletTransferRepository transfers,
     IUnitOfWork unitOfWork,
+    IOutboxMessageWriter outbox,
     TimeProvider timeProvider)
 {
     public async Task<TransferWalletResult?> Handle(
@@ -77,6 +79,20 @@ public sealed class TransferWalletHandler(
             source.Balance,
             destination.Balance);
         transfers.Add(command.IdempotencyKey, result, now);
+        var integrationEvent = new TransferCompletedIntegrationEvent(
+            Guid.NewGuid(),
+            now,
+            result.TransferId,
+            result.SourceWalletId,
+            result.DestinationWalletId,
+            result.Amount,
+            result.CurrencyCode);
+        outbox.Add(
+            integrationEvent.EventId,
+            integrationEvent.TransferId,
+            TransferCompletedIntegrationEvent.EventType,
+            integrationEvent.OccurredAtUtc,
+            integrationEvent);
 
         try
         {

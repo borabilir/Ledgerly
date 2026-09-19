@@ -17,4 +17,4 @@ Transfer double-spending'e karşı korunuyordu; fakat aynı başarılı isteğin
 
 ## Sonraki aday
 
-Transfer artık kalıcı kimliğe sahip; fakat hâlâ senkron olarak tamamlanıyor. Sonraki senaryoda transfer durum makinesi, dış servis timeout'u veya transactional outbox ile “DB commit oldu ama event yayınlanamadı” problemi ele alınabilir.
+Transfer artık kalıcı kimliğe sahip; fakat bu milestone anında başka sistemlere güvenilir event gönderimi yoktu. “DB commit oldu ama event yayınlanamadı” problemi daha sonra [12 — Transactional Outbox](12-transactional-outbox.md) içinde ele alındı.

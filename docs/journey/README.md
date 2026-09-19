@@ -14,5 +14,6 @@
 - [09 — Test Yatırmasında Idempotency](09-test-deposit-idempotency.md)
 - [10 — Wallet-to-Wallet Transfer ve Double-Spending](10-wallet-transfer.md)
 - [11 — Transfer Idempotency](11-transfer-idempotency.md)
+- [12 — Transactional Outbox](12-transactional-outbox.md)
 
 Milestone'lar ve projenin kronolojik gelişimi burada tutulur. Her kayıt başlangıç durumunu, yapılan değişiklikleri, doğrulamayı ve bir sonraki adımı gösterir.

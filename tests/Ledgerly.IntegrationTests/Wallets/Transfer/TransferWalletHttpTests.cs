@@ -3,10 +3,13 @@ using System.Net;
 using System.Net.Http.Json;
 using Ledgerly.Api.Contracts.Transfers;
 using Ledgerly.Api.Contracts.Wallets;
+using Ledgerly.Application.Abstractions.Messaging;
 using Ledgerly.Application.Abstractions.Persistence;
+using Ledgerly.Application.Wallets.TransferWallet;
 using Ledgerly.Domain.Ledger;
 using Ledgerly.Domain.Wallets;
 using Ledgerly.Infrastructure.Persistence;
+using Ledgerly.Infrastructure.Messaging;
 using Ledgerly.IntegrationTests.Infrastructure;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -236,6 +239,97 @@ public sealed class TransferWalletHttpTests(LedgerlyApiFactory factory)
     }
 
     [Fact]
+    [Trait("Lab", "TransactionalOutbox")]
+    public async Task Transfer_WhenPublisherFails_ShouldCommitOutboxAndPublishOnRetry()
+    {
+        var source = await SeedWallet();
+        var destination = await SeedWallet();
+        var publisher = new SwitchableEventPublisher { ShouldFail = true };
+        using var failingApp = factory.WithWebHostBuilder(builder => builder.ConfigureTestServices(services =>
+        {
+            services.RemoveAll<IIntegrationEventPublisher>();
+            services.AddSingleton<IIntegrationEventPublisher>(publisher);
+        }));
+        using var client = Client(failingApp);
+        try
+        {
+            await Fund(client, source.Id, 100m);
+            const string idempotencyKey = "outbox-failure-reproduce";
+
+            using var response = await PostTransfer(
+                client, source.Id, destination.Id, 40m, idempotencyKey);
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            var receipt = (await response.Content.ReadFromJsonAsync<CreateTransferResponse>())!;
+            Assert.Empty(publisher.Attempts);
+            Assert.Empty(publisher.Delivered);
+
+            await using (var scope = factory.Services.CreateAsyncScope())
+            {
+                var db = scope.ServiceProvider.GetRequiredService<LedgerlyDbContext>();
+                Assert.Equal(60m, await db.Wallets.Where(wallet => wallet.Id == source.Id)
+                    .Select(wallet => wallet.Balance).SingleAsync());
+                Assert.Equal(40m, await db.Wallets.Where(wallet => wallet.Id == destination.Id)
+                    .Select(wallet => wallet.Balance).SingleAsync());
+                var committedTransfer = await db.WalletTransfers.AsNoTracking().SingleAsync(transfer =>
+                    transfer.SourceWalletId == source.Id && transfer.IdempotencyKey == idempotencyKey);
+                Assert.Equal(receipt.TransferId, committedTransfer.Id);
+                var pendingMessage = await db.OutboxMessages.AsNoTracking().SingleAsync(message =>
+                    message.AggregateId == receipt.TransferId);
+                Assert.Equal(TransferCompletedIntegrationEvent.EventType, pendingMessage.Type);
+                Assert.Null(pendingMessage.ProcessedAtUtc);
+                Assert.Equal(0, pendingMessage.AttemptCount);
+            }
+
+            // Retrying the HTTP request replays the receipt and does not create a second event.
+            using var retryResponse = await PostTransfer(
+                client, source.Id, destination.Id, 40m, idempotencyKey);
+            Assert.Equal(HttpStatusCode.OK, retryResponse.StatusCode);
+            await using (var scope = factory.Services.CreateAsyncScope())
+            {
+                var db = scope.ServiceProvider.GetRequiredService<LedgerlyDbContext>();
+                Assert.Equal(1, await db.OutboxMessages.CountAsync(message =>
+                    message.AggregateId == receipt.TransferId));
+            }
+
+            await ProcessOutbox(failingApp);
+            Assert.Single(publisher.Attempts);
+            Assert.Empty(publisher.Delivered);
+            await using (var scope = factory.Services.CreateAsyncScope())
+            {
+                var db = scope.ServiceProvider.GetRequiredService<LedgerlyDbContext>();
+                var failedMessage = await db.OutboxMessages.AsNoTracking().SingleAsync(message =>
+                    message.AggregateId == receipt.TransferId);
+                Assert.Null(failedMessage.ProcessedAtUtc);
+                Assert.Equal(1, failedMessage.AttemptCount);
+                Assert.Equal("The simulated broker is unavailable.", failedMessage.LastError);
+            }
+
+            publisher.ShouldFail = false;
+            await ProcessOutbox(failingApp);
+            Assert.Equal(2, publisher.Attempts.Count);
+            var delivered = Assert.Single(publisher.Delivered);
+            Assert.Equal(receipt.TransferId, delivered.AggregateId);
+            await using (var scope = factory.Services.CreateAsyncScope())
+            {
+                var db = scope.ServiceProvider.GetRequiredService<LedgerlyDbContext>();
+                var processedMessage = await db.OutboxMessages.AsNoTracking().SingleAsync(message =>
+                    message.AggregateId == receipt.TransferId);
+                Assert.NotNull(processedMessage.ProcessedAtUtc);
+                Assert.Equal(2, processedMessage.AttemptCount);
+                Assert.Null(processedMessage.LastError);
+            }
+        }
+        finally { await Cleanup(source.Id, destination.Id); }
+    }
+
+    private static async Task ProcessOutbox(WebApplicationFactory<Program> app)
+    {
+        await using var scope = app.Services.CreateAsyncScope();
+        await scope.ServiceProvider.GetRequiredService<OutboxProcessor>().ProcessBatchAsync();
+    }
+
+    [Fact]
     public async Task Transfer_WhenFundsAreInsufficient_ShouldReturn409WithoutAnyTransferWrites()
     {
         var source = await SeedWallet();
@@ -384,6 +478,9 @@ public sealed class TransferWalletHttpTests(LedgerlyApiFactory factory)
             account.WalletId != null && walletIds.Contains(account.WalletId.Value)).Select(account => account.Id);
         var journalIds = await db.Postings.Where(posting => accountIds.Contains(posting.AccountId))
             .Select(posting => posting.JournalEntryId).Distinct().ToArrayAsync();
+        var transferIds = await db.WalletTransfers.Where(transfer => walletIds.Contains(transfer.SourceWalletId)
+            || walletIds.Contains(transfer.DestinationWalletId)).Select(transfer => transfer.Id).ToArrayAsync();
+        await db.OutboxMessages.Where(message => transferIds.Contains(message.AggregateId)).ExecuteDeleteAsync();
         await db.WalletTransfers.Where(transfer => walletIds.Contains(transfer.SourceWalletId)
             || walletIds.Contains(transfer.DestinationWalletId)).ExecuteDeleteAsync();
         await db.TestDepositOperations.Where(operation => walletIds.Contains(operation.WalletId)).ExecuteDeleteAsync();
@@ -417,6 +514,27 @@ public sealed class TransferWalletHttpTests(LedgerlyApiFactory factory)
             gate.JournalIds.Add(db.JournalEntries.Local.Single().Id);
             await gate.Wait(cancellationToken);
             await ((IUnitOfWork)db).SaveChangesAsync(cancellationToken);
+        }
+    }
+
+    private sealed class SwitchableEventPublisher : IIntegrationEventPublisher
+    {
+        public bool ShouldFail { get; set; }
+        public List<IntegrationEventMessage> Attempts { get; } = [];
+        public List<IntegrationEventMessage> Delivered { get; } = [];
+
+        public Task PublishAsync(
+            IntegrationEventMessage message,
+            CancellationToken cancellationToken = default)
+        {
+            Attempts.Add(message);
+            if (ShouldFail)
+            {
+                throw new InvalidOperationException("The simulated broker is unavailable.");
+            }
+
+            Delivered.Add(message);
+            return Task.CompletedTask;
         }
     }
 }

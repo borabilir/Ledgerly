@@ -1,3 +1,4 @@
+using Ledgerly.Application.Abstractions.Messaging;
 using Ledgerly.Application.Abstractions.Persistence;
 using Ledgerly.Application.Ledger;
 using Ledgerly.Application.Wallets;
@@ -28,7 +29,9 @@ public sealed class TransferWalletHandlerTests
         var journals = new Journals();
         var transfers = new Transfers();
         var saves = new Saves();
-        var handler = new TransferWalletHandler(wallets, accounts, journals, transfers, saves, new Clock());
+        var events = new Events();
+        var handler = new TransferWalletHandler(
+            wallets, accounts, journals, transfers, saves, events, new Clock());
 
         var result = await handler.Handle(new TransferWalletCommand(source.Id, destination.Id, 40m, "transfer-1"));
 
@@ -41,6 +44,13 @@ public sealed class TransferWalletHandlerTests
         Assert.Equal(accountsExist ? 0 : 2, accounts.Added.Count);
         Assert.Equal(1, saves.Count);
         Assert.Equal(result, Assert.Single(transfers.Added).Result);
+        var outboxMessage = Assert.Single(events.Messages);
+        Assert.Equal(TransferCompletedIntegrationEvent.EventType, outboxMessage.Type);
+        var integrationEvent = Assert.IsType<TransferCompletedIntegrationEvent>(outboxMessage.Payload);
+        Assert.Equal(integrationEvent.EventId, outboxMessage.Id);
+        Assert.Equal(result.TransferId, outboxMessage.AggregateId);
+        Assert.Equal(result.TransferId, integrationEvent.TransferId);
+        Assert.Equal(result.JournalEntryId, journals.Added.Single().Id);
         var sourceAccount = accounts.ForWallet(source.Id);
         var destinationAccount = accounts.ForWallet(destination.Id);
         var journal = Assert.Single(journals.Added);
@@ -59,7 +69,7 @@ public sealed class TransferWalletHandlerTests
         var journals = new Journals();
         var saves = new Saves();
         var handler = new TransferWalletHandler(
-            new Wallets(source, destination), accounts, journals, new Transfers(), saves, new Clock());
+            new Wallets(source, destination), accounts, journals, new Transfers(), saves, new Events(), new Clock());
 
         await Assert.ThrowsAsync<InsufficientFundsException>(() =>
             handler.Handle(new TransferWalletCommand(source.Id, destination.Id, 11m, "transfer-1")));
@@ -76,7 +86,7 @@ public sealed class TransferWalletHandlerTests
     {
         var source = WalletWithBalance(100m);
         var handler = new TransferWalletHandler(
-            new Wallets(source), new Accounts(), new Journals(), new Transfers(), new Saves(), new Clock());
+            new Wallets(source), new Accounts(), new Journals(), new Transfers(), new Saves(), new Events(), new Clock());
 
         var result = await handler.Handle(new TransferWalletCommand(source.Id, Guid.NewGuid(), 10m, "transfer-1"));
 
@@ -90,7 +100,7 @@ public sealed class TransferWalletHandlerTests
         var wallet = WalletWithBalance(100m);
         var wallets = new Wallets(wallet);
         var handler = new TransferWalletHandler(
-            wallets, new Accounts(), new Journals(), new Transfers(), new Saves(), new Clock());
+            wallets, new Accounts(), new Journals(), new Transfers(), new Saves(), new Events(), new Clock());
 
         await Assert.ThrowsAsync<SameWalletTransferException>(() =>
             handler.Handle(new TransferWalletCommand(wallet.Id, wallet.Id, 10m, "transfer-1")));
@@ -109,8 +119,9 @@ public sealed class TransferWalletHandlerTests
         var transfers = new Transfers(new WalletTransferSnapshot(stored));
         var wallets = new Wallets();
         var saves = new Saves();
+        var events = new Events();
         var handler = new TransferWalletHandler(
-            wallets, new Accounts(), new Journals(), transfers, saves, new Clock());
+            wallets, new Accounts(), new Journals(), transfers, saves, events, new Clock());
 
         var result = await handler.Handle(
             new TransferWalletCommand(sourceId, destinationId, 40m, "transfer-1"));
@@ -118,6 +129,7 @@ public sealed class TransferWalletHandlerTests
         Assert.Equal(stored, result);
         Assert.Equal(0, wallets.Reads);
         Assert.Equal(0, saves.Count);
+        Assert.Empty(events.Messages);
     }
 
     [Fact]
@@ -130,7 +142,7 @@ public sealed class TransferWalletHandlerTests
         var saves = new Saves();
         var handler = new TransferWalletHandler(
             wallets, new Accounts(), new Journals(),
-            new Transfers(new WalletTransferSnapshot(stored)), saves, new Clock());
+            new Transfers(new WalletTransferSnapshot(stored)), saves, new Events(), new Clock());
 
         await Assert.ThrowsAsync<TransferIdempotencyConflictException>(() => handler.Handle(
             new TransferWalletCommand(sourceId, Guid.NewGuid(), 40m, "transfer-1")));
@@ -218,5 +230,19 @@ public sealed class TransferWalletHandlerTests
             Count++;
             return Task.CompletedTask;
         }
+    }
+
+    private sealed class Events : IOutboxMessageWriter
+    {
+        public List<(Guid Id, Guid AggregateId, string Type, DateTimeOffset OccurredAtUtc, object Payload)> Messages { get; } = [];
+
+        public void Add<TEvent>(
+            Guid id,
+            Guid aggregateId,
+            string type,
+            DateTimeOffset occurredAtUtc,
+            TEvent payload)
+            where TEvent : class
+            => Messages.Add((id, aggregateId, type, occurredAtUtc, payload));
     }
 }

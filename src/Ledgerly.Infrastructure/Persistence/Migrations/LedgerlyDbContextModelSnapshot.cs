@@ -232,6 +232,74 @@ namespace Ledgerly.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Ledgerly.Infrastructure.Persistence.Records.WalletTransferRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(19, 4)
+                        .HasColumnType("numeric(19,4)")
+                        .HasColumnName("amount");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<string>("CurrencyCode")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)")
+                        .HasColumnName("currency");
+
+                    b.Property<decimal>("DestinationBalance")
+                        .HasPrecision(19, 4)
+                        .HasColumnType("numeric(19,4)")
+                        .HasColumnName("destination_balance");
+
+                    b.Property<Guid>("DestinationWalletId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("destination_wallet_id");
+
+                    b.Property<string>("IdempotencyKey")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("idempotency_key");
+
+                    b.Property<Guid>("JournalEntryId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("journal_entry_id");
+
+                    b.Property<decimal>("SourceBalance")
+                        .HasPrecision(19, 4)
+                        .HasColumnType("numeric(19,4)")
+                        .HasColumnName("source_balance");
+
+                    b.Property<Guid>("SourceWalletId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("source_wallet_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_wallet_transfers");
+
+                    b.HasIndex("DestinationWalletId");
+
+                    b.HasIndex("JournalEntryId")
+                        .IsUnique()
+                        .HasDatabaseName("ux_wallet_transfers_journal_entry_id");
+
+                    b.HasIndex("SourceWalletId", "IdempotencyKey")
+                        .IsUnique()
+                        .HasDatabaseName("ux_wallet_transfers_source_wallet_id_idempotency_key");
+
+                    b.ToTable("wallet_transfers", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_wallet_transfers_amount_positive", "amount > 0");
+                        });
+                });
+
             modelBuilder.Entity("Ledgerly.Infrastructure.Persistence.Records.LedgerAccountRecord", b =>
                 {
                     b.HasOne("Ledgerly.Domain.Wallets.Wallet", null)
@@ -276,6 +344,30 @@ namespace Ledgerly.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_test_deposit_operations_journal");
+                });
+
+            modelBuilder.Entity("Ledgerly.Infrastructure.Persistence.Records.WalletTransferRecord", b =>
+                {
+                    b.HasOne("Ledgerly.Domain.Wallets.Wallet", null)
+                        .WithMany()
+                        .HasForeignKey("DestinationWalletId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_wallet_transfers_destination_wallet");
+
+                    b.HasOne("Ledgerly.Infrastructure.Persistence.Records.JournalEntryRecord", null)
+                        .WithMany()
+                        .HasForeignKey("JournalEntryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_wallet_transfers_journal");
+
+                    b.HasOne("Ledgerly.Domain.Wallets.Wallet", null)
+                        .WithMany()
+                        .HasForeignKey("SourceWalletId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_wallet_transfers_source_wallet");
                 });
 
             modelBuilder.Entity("Ledgerly.Infrastructure.Persistence.Records.JournalEntryRecord", b =>

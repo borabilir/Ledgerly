@@ -2,6 +2,7 @@ using Ledgerly.Application.Abstractions.Persistence;
 using Ledgerly.Application.Ledger;
 using Ledgerly.Application.Wallets;
 using Ledgerly.Application.Wallets.TestDeposit;
+using Ledgerly.Application.Wallets.TransferWallet;
 using Ledgerly.Infrastructure.Ledger;
 using Ledgerly.Infrastructure.Persistence;
 using Ledgerly.Infrastructure.Wallets;
@@ -34,6 +35,7 @@ public static class DependencyInjection
         services.AddScoped<ILedgerAccountRepository, LedgerAccountRepository>();
         services.AddScoped<IJournalEntryRepository, JournalEntryRepository>();
         services.AddScoped<ITestDepositOperationRepository, TestDepositOperationRepository>();
+        services.AddScoped<IWalletTransferRepository, WalletTransferRepository>();
         services.AddScoped<IUnitOfWork>(serviceProvider =>
             serviceProvider.GetRequiredService<LedgerlyDbContext>()
         );

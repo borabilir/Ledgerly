@@ -2,6 +2,7 @@ using Ledgerly.Application.Abstractions.Persistence;
 using Ledgerly.Application.Ledger;
 using Ledgerly.Application.Wallets.CreateWallet;
 using Ledgerly.Application.Wallets.TestDeposit;
+using Ledgerly.Application.Wallets.TransferWallet;
 using Ledgerly.Domain.Wallets;
 using Ledgerly.Infrastructure.Persistence.Configurations;
 using Ledgerly.Infrastructure.Persistence.Records;
@@ -22,6 +23,7 @@ public sealed class LedgerlyDbContext : DbContext, IUnitOfWork
     internal DbSet<JournalEntryRecord> JournalEntries => Set<JournalEntryRecord>();
     internal DbSet<PostingRecord> Postings => Set<PostingRecord>();
     internal DbSet<TestDepositOperationRecord> TestDepositOperations => Set<TestDepositOperationRecord>();
+    internal DbSet<WalletTransferRecord> WalletTransfers => Set<WalletTransferRecord>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -40,6 +42,15 @@ public sealed class LedgerlyDbContext : DbContext, IUnitOfWork
             exception.Entries.Count > 0 && exception.Entries.All(entry => entry.Entity is Wallet))
         {
             throw new LedgerWriteConflictException(exception);
+        }
+        catch (DbUpdateException exception) when (
+            exception.InnerException is PostgresException
+            {
+                SqlState: PostgresErrorCodes.UniqueViolation,
+                ConstraintName: WalletTransferConfiguration.IdempotencyUniqueIndexName,
+            })
+        {
+            throw new TransferIdempotencyWriteConflictException(exception);
         }
         catch (DbUpdateException exception) when (
             exception.InnerException is PostgresException

@@ -9,6 +9,7 @@ public sealed class TransferWalletHandler(
     IWalletRepository wallets,
     ILedgerAccountRepository accounts,
     IJournalEntryRepository journals,
+    IWalletTransferRepository transfers,
     IUnitOfWork unitOfWork,
     TimeProvider timeProvider)
 {
@@ -17,6 +18,22 @@ public sealed class TransferWalletHandler(
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(command);
+        if (string.IsNullOrWhiteSpace(command.IdempotencyKey)
+            || command.IdempotencyKey.Length > 128
+            || command.IdempotencyKey != command.IdempotencyKey.Trim())
+        {
+            throw new ArgumentException(
+                "Idempotency key must be 1-128 characters without surrounding whitespace.",
+                nameof(command));
+        }
+
+        var previous = await transfers.GetAsync(
+            command.SourceWalletId, command.IdempotencyKey, cancellationToken);
+        if (previous is not null)
+        {
+            return Replay(previous, command);
+        }
+
         if (command.SourceWalletId == command.DestinationWalletId)
         {
             throw new SameWalletTransferException();
@@ -50,9 +67,8 @@ public sealed class TransferWalletHandler(
         ], now);
 
         journals.Add(journal);
-        await unitOfWork.SaveChangesAsync(cancellationToken);
-
-        return new TransferWalletResult(
+        var result = new TransferWalletResult(
+            Guid.NewGuid(),
             journal.Id,
             source.Id,
             destination.Id,
@@ -60,6 +76,41 @@ public sealed class TransferWalletHandler(
             command.Amount,
             source.Balance,
             destination.Balance);
+        transfers.Add(command.IdempotencyKey, result, now);
+
+        try
+        {
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+        }
+        catch (Exception exception) when (
+            exception is LedgerWriteConflictException or TransferIdempotencyWriteConflictException)
+        {
+            // The competing request may already have committed this key. If it did,
+            // return that durable receipt; otherwise preserve the original conflict.
+            previous = await transfers.GetAsync(
+                command.SourceWalletId, command.IdempotencyKey, cancellationToken);
+            if (previous is null)
+            {
+                throw;
+            }
+
+            return Replay(previous, command);
+        }
+
+        return result;
+    }
+
+    private static TransferWalletResult Replay(
+        WalletTransferSnapshot previous,
+        TransferWalletCommand command)
+    {
+        if (previous.Result.DestinationWalletId != command.DestinationWalletId
+            || previous.Result.Amount != command.Amount)
+        {
+            throw new TransferIdempotencyConflictException();
+        }
+
+        return previous.Result;
     }
 
     private async Task<Guid> GetOrCreateAccountId(

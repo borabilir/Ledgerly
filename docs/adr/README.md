@@ -12,5 +12,6 @@
 - [ADR-0008 — LedgerAccount Amacını Açıkça Modellemek](0008-explicit-ledger-account-purpose.md)
 - [ADR-0009 — Test Yatırmasında Kalıcı Idempotency Key](0009-test-deposit-idempotency.md)
 - [ADR-0010 — Wallet Transferinde Optimistic Concurrency](0010-wallet-transfer-and-double-spending.md)
+- [ADR-0011 — Transferde Kalıcı Idempotency Kaydı](0011-transfer-idempotency.md)
 
 Mimari kararlar sıralı `ADR-NNN-kisa-baslik.md` dosyaları olarak kaydedilir. Yeni kayıtlar için [ADR şablonu](../templates/adr-template.md) kullanılır.

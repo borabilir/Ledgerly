@@ -26,10 +26,11 @@ public sealed class TransferWalletHandlerTests
             accounts.Seed(LedgerAccount.CreateForWallet(destination.Id, destination.Currency, Now));
         }
         var journals = new Journals();
+        var transfers = new Transfers();
         var saves = new Saves();
-        var handler = new TransferWalletHandler(wallets, accounts, journals, saves, new Clock());
+        var handler = new TransferWalletHandler(wallets, accounts, journals, transfers, saves, new Clock());
 
-        var result = await handler.Handle(new TransferWalletCommand(source.Id, destination.Id, 40m));
+        var result = await handler.Handle(new TransferWalletCommand(source.Id, destination.Id, 40m, "transfer-1"));
 
         Assert.NotNull(result);
         Assert.Equal(60m, source.Balance);
@@ -39,6 +40,7 @@ public sealed class TransferWalletHandlerTests
         Assert.Equal("TRY", result.CurrencyCode);
         Assert.Equal(accountsExist ? 0 : 2, accounts.Added.Count);
         Assert.Equal(1, saves.Count);
+        Assert.Equal(result, Assert.Single(transfers.Added).Result);
         var sourceAccount = accounts.ForWallet(source.Id);
         var destinationAccount = accounts.ForWallet(destination.Id);
         var journal = Assert.Single(journals.Added);
@@ -56,10 +58,11 @@ public sealed class TransferWalletHandlerTests
         var accounts = new Accounts();
         var journals = new Journals();
         var saves = new Saves();
-        var handler = new TransferWalletHandler(new Wallets(source, destination), accounts, journals, saves, new Clock());
+        var handler = new TransferWalletHandler(
+            new Wallets(source, destination), accounts, journals, new Transfers(), saves, new Clock());
 
         await Assert.ThrowsAsync<InsufficientFundsException>(() =>
-            handler.Handle(new TransferWalletCommand(source.Id, destination.Id, 11m)));
+            handler.Handle(new TransferWalletCommand(source.Id, destination.Id, 11m, "transfer-1")));
 
         Assert.Equal(10m, source.Balance);
         Assert.Equal(20m, destination.Balance);
@@ -73,9 +76,9 @@ public sealed class TransferWalletHandlerTests
     {
         var source = WalletWithBalance(100m);
         var handler = new TransferWalletHandler(
-            new Wallets(source), new Accounts(), new Journals(), new Saves(), new Clock());
+            new Wallets(source), new Accounts(), new Journals(), new Transfers(), new Saves(), new Clock());
 
-        var result = await handler.Handle(new TransferWalletCommand(source.Id, Guid.NewGuid(), 10m));
+        var result = await handler.Handle(new TransferWalletCommand(source.Id, Guid.NewGuid(), 10m, "transfer-1"));
 
         Assert.Null(result);
         Assert.Equal(100m, source.Balance);
@@ -87,13 +90,53 @@ public sealed class TransferWalletHandlerTests
         var wallet = WalletWithBalance(100m);
         var wallets = new Wallets(wallet);
         var handler = new TransferWalletHandler(
-            wallets, new Accounts(), new Journals(), new Saves(), new Clock());
+            wallets, new Accounts(), new Journals(), new Transfers(), new Saves(), new Clock());
 
         await Assert.ThrowsAsync<SameWalletTransferException>(() =>
-            handler.Handle(new TransferWalletCommand(wallet.Id, wallet.Id, 10m)));
+            handler.Handle(new TransferWalletCommand(wallet.Id, wallet.Id, 10m, "transfer-1")));
 
         Assert.Equal(0, wallets.Reads);
         Assert.Equal(100m, wallet.Balance);
+    }
+
+    [Fact]
+    public async Task Handle_WhenTheSameKeyAndPayloadWereCompleted_ShouldReturnStoredReceiptWithoutWriting()
+    {
+        var sourceId = Guid.NewGuid();
+        var destinationId = Guid.NewGuid();
+        var stored = new TransferWalletResult(
+            Guid.NewGuid(), Guid.NewGuid(), sourceId, destinationId, "TRY", 40m, 60m, 40m);
+        var transfers = new Transfers(new WalletTransferSnapshot(stored));
+        var wallets = new Wallets();
+        var saves = new Saves();
+        var handler = new TransferWalletHandler(
+            wallets, new Accounts(), new Journals(), transfers, saves, new Clock());
+
+        var result = await handler.Handle(
+            new TransferWalletCommand(sourceId, destinationId, 40m, "transfer-1"));
+
+        Assert.Equal(stored, result);
+        Assert.Equal(0, wallets.Reads);
+        Assert.Equal(0, saves.Count);
+    }
+
+    [Fact]
+    public async Task Handle_WhenTheSameKeyHasDifferentPayload_ShouldRejectWithoutWriting()
+    {
+        var sourceId = Guid.NewGuid();
+        var stored = new TransferWalletResult(
+            Guid.NewGuid(), Guid.NewGuid(), sourceId, Guid.NewGuid(), "TRY", 40m, 60m, 40m);
+        var wallets = new Wallets();
+        var saves = new Saves();
+        var handler = new TransferWalletHandler(
+            wallets, new Accounts(), new Journals(),
+            new Transfers(new WalletTransferSnapshot(stored)), saves, new Clock());
+
+        await Assert.ThrowsAsync<TransferIdempotencyConflictException>(() => handler.Handle(
+            new TransferWalletCommand(sourceId, Guid.NewGuid(), 40m, "transfer-1")));
+
+        Assert.Equal(0, wallets.Reads);
+        Assert.Equal(0, saves.Count);
     }
 
     private static Wallet WalletWithBalance(decimal balance)
@@ -152,6 +195,19 @@ public sealed class TransferWalletHandlerTests
         public void Add(JournalEntry journal) => Added.Add(journal);
         public Task<JournalEntrySnapshot?> GetByIdAsync(Guid id,
             CancellationToken cancellationToken = default) => throw new NotSupportedException();
+    }
+
+    private sealed class Transfers(WalletTransferSnapshot? stored = null) : IWalletTransferRepository
+    {
+        public List<(string Key, TransferWalletResult Result, DateTimeOffset CreatedAtUtc)> Added { get; } = [];
+
+        public Task<WalletTransferSnapshot?> GetAsync(
+            Guid sourceWalletId,
+            string idempotencyKey,
+            CancellationToken cancellationToken = default) => Task.FromResult(stored);
+
+        public void Add(string idempotencyKey, TransferWalletResult result, DateTimeOffset createdAtUtc) =>
+            Added.Add((idempotencyKey, result, createdAtUtc));
     }
 
     private sealed class Saves : IUnitOfWork

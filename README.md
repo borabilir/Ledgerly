@@ -90,3 +90,5 @@ Hesabın muhasebe türü `Type`, kullanım amacı ise `Purpose` ile tutulur. Tes
 Test yatırmasında tekrar deneme için `Idempotency-Key` zorunludur: aynı key ve tutar ilk makbuzu döner, farklı tutar `409` verir. [Senaryo, karar ve testler](docs/labs/004-test-deposit-idempotency/README.md).
 
 Wallet-to-wallet TRY transferi kaynak ve hedef bakiyeyi dengeli journal ile tek transaction'da değiştirir. Aynı kaynak bakiyeyi harcayan paralel transferlerden yalnızca biri commit edilir. [Double-spending deneyi](docs/labs/005-wallet-transfer-double-spending/README.md).
+
+Transfer isteklerinde `Idempotency-Key` zorunludur. Aynı key ve payload tekrarlandığında yeni para hareketi yapılmadan ilk `TransferId` ve makbuz döner; farklı payload aynı key'i kullanırsa `409` alınır. [Transfer retry deneyi](docs/labs/006-transfer-idempotency/README.md).

@@ -16,4 +16,4 @@ Wallet'a yalnızca test bakiyesi ekleyebiliyorduk; bakiye azaltan ve iki wallet'
 
 ## Sınır ve sonraki adım
 
-Şimdilik yalnızca TRY vardır ve transfer journal makbuzuyla temsil edilir. Kalıcı transfer durumu ve transfer retry idempotency'si yoktur. Sonraki deney aynı mantıksal transfer isteğinin bağlantı hatası sonrası yeniden gönderilmesini ele almalıdır.
+Bu milestone anında yalnızca TRY vardı ve transfer journal makbuzuyla temsil ediliyordu. Bağlantı hatası sonrası retry problemi daha sonra [11 — Transfer Idempotency](11-transfer-idempotency.md) içinde ele alındı.

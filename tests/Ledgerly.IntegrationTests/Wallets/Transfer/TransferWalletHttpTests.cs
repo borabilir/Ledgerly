@@ -70,6 +70,172 @@ public sealed class TransferWalletHttpTests(LedgerlyApiFactory factory)
     }
 
     [Fact]
+    [Trait("Lab", "TransferIdempotency")]
+    public async Task Transfer_WhenTheSameRequestIsRetried_ShouldReturnStoredReceiptWithoutMovingMoneyAgain()
+    {
+        var source = await SeedWallet();
+        var destination = await SeedWallet();
+        using var client = Client(factory);
+        try
+        {
+            await Fund(client, source.Id, 250m);
+            const string idempotencyKey = "transfer-retry-1";
+
+            using var firstResponse = await PostTransfer(
+                client, source.Id, destination.Id, 100m, idempotencyKey);
+            using var retryResponse = await PostTransfer(
+                client, source.Id, destination.Id, 100m, idempotencyKey);
+
+            Assert.Equal(HttpStatusCode.OK, firstResponse.StatusCode);
+            Assert.Equal(HttpStatusCode.OK, retryResponse.StatusCode);
+            var firstReceipt = (await firstResponse.Content.ReadFromJsonAsync<CreateTransferResponse>())!;
+            var retryReceipt = (await retryResponse.Content.ReadFromJsonAsync<CreateTransferResponse>())!;
+            Assert.Equal(firstReceipt, retryReceipt);
+
+            await using var scope = factory.Services.CreateAsyncScope();
+            var db = scope.ServiceProvider.GetRequiredService<LedgerlyDbContext>();
+            Assert.Equal(150m, await db.Wallets.Where(wallet => wallet.Id == source.Id)
+                .Select(wallet => wallet.Balance).SingleAsync());
+            Assert.Equal(100m, await db.Wallets.Where(wallet => wallet.Id == destination.Id)
+                .Select(wallet => wallet.Balance).SingleAsync());
+            Assert.Equal(1, await db.JournalEntries.CountAsync(entry =>
+                entry.Id == firstReceipt.JournalEntryId));
+            Assert.Equal(1, await db.WalletTransfers.CountAsync(transfer =>
+                transfer.Id == firstReceipt.TransferId));
+        }
+        finally { await Cleanup(source.Id, destination.Id); }
+    }
+
+    [Fact]
+    [Trait("Lab", "TransferIdempotency")]
+    public async Task Transfer_WhenIdempotencyKeyIsMissing_ShouldReturn400WithoutWriting()
+    {
+        var source = await SeedWallet();
+        var destination = await SeedWallet();
+        using var client = Client(factory);
+        try
+        {
+            using var response = await client.PostAsJsonAsync("/api/transfers",
+                new CreateTransferRequest(source.Id, destination.Id, 10m));
+
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            Assert.Equal("Invalid request", (await response.Content.ReadFromJsonAsync<ProblemDetails>())!.Title);
+            await using var scope = factory.Services.CreateAsyncScope();
+            var db = scope.ServiceProvider.GetRequiredService<LedgerlyDbContext>();
+            Assert.False(await db.WalletTransfers.AnyAsync(transfer =>
+                transfer.SourceWalletId == source.Id));
+        }
+        finally { await Cleanup(source.Id, destination.Id); }
+    }
+
+    [Fact]
+    [Trait("Lab", "TransferIdempotency")]
+    public async Task Transfer_WhenTheSameKeyIsReusedForDifferentPayload_ShouldReturn409WithoutSecondTransfer()
+    {
+        var source = await SeedWallet();
+        var destination = await SeedWallet();
+        using var client = Client(factory);
+        try
+        {
+            await Fund(client, source.Id, 100m);
+            const string idempotencyKey = "transfer-payload-conflict";
+            using var firstResponse = await PostTransfer(
+                client, source.Id, destination.Id, 30m, idempotencyKey);
+            using var conflictingResponse = await PostTransfer(
+                client, source.Id, destination.Id, 31m, idempotencyKey);
+
+            Assert.Equal(HttpStatusCode.OK, firstResponse.StatusCode);
+            Assert.Equal(HttpStatusCode.Conflict, conflictingResponse.StatusCode);
+            Assert.Equal("Transfer idempotency key conflict",
+                (await conflictingResponse.Content.ReadFromJsonAsync<ProblemDetails>())!.Title);
+            await using var scope = factory.Services.CreateAsyncScope();
+            var db = scope.ServiceProvider.GetRequiredService<LedgerlyDbContext>();
+            Assert.Equal(70m, await db.Wallets.Where(wallet => wallet.Id == source.Id)
+                .Select(wallet => wallet.Balance).SingleAsync());
+            Assert.Equal(30m, await db.Wallets.Where(wallet => wallet.Id == destination.Id)
+                .Select(wallet => wallet.Balance).SingleAsync());
+        }
+        finally { await Cleanup(source.Id, destination.Id); }
+    }
+
+    [Fact]
+    [Trait("Lab", "TransferIdempotency")]
+    public async Task Transfer_WhenTheSamePayloadUsesDifferentKeys_ShouldCreateTwoTransfers()
+    {
+        var source = await SeedWallet();
+        var destination = await SeedWallet();
+        using var client = Client(factory);
+        try
+        {
+            await Fund(client, source.Id, 100m);
+            using var firstResponse = await PostTransfer(
+                client, source.Id, destination.Id, 40m, "first-transfer-intent");
+            using var secondResponse = await PostTransfer(
+                client, source.Id, destination.Id, 40m, "second-transfer-intent");
+
+            Assert.Equal(HttpStatusCode.OK, firstResponse.StatusCode);
+            Assert.Equal(HttpStatusCode.OK, secondResponse.StatusCode);
+            var firstReceipt = (await firstResponse.Content.ReadFromJsonAsync<CreateTransferResponse>())!;
+            var secondReceipt = (await secondResponse.Content.ReadFromJsonAsync<CreateTransferResponse>())!;
+            Assert.NotEqual(firstReceipt.TransferId, secondReceipt.TransferId);
+
+            await using var scope = factory.Services.CreateAsyncScope();
+            var db = scope.ServiceProvider.GetRequiredService<LedgerlyDbContext>();
+            Assert.Equal(20m, await db.Wallets.Where(wallet => wallet.Id == source.Id)
+                .Select(wallet => wallet.Balance).SingleAsync());
+            Assert.Equal(80m, await db.Wallets.Where(wallet => wallet.Id == destination.Id)
+                .Select(wallet => wallet.Balance).SingleAsync());
+            Assert.Equal(2, await db.WalletTransfers.CountAsync(transfer =>
+                transfer.SourceWalletId == source.Id));
+        }
+        finally { await Cleanup(source.Id, destination.Id); }
+    }
+
+    [Fact]
+    [Trait("Lab", "TransferIdempotency")]
+    public async Task Transfer_WhenTheSameKeyArrivesConcurrently_ShouldCommitOnceAndReplayOneReceipt()
+    {
+        var source = await SeedWallet();
+        var destination = await SeedWallet();
+        using var setupClient = Client(factory);
+        await Fund(setupClient, source.Id, 100m);
+        var gate = new SaveGate();
+        using var racing = factory.WithWebHostBuilder(builder => builder.ConfigureTestServices(services =>
+        {
+            services.RemoveAll<IUnitOfWork>();
+            services.AddScoped<IUnitOfWork>(provider => new CoordinatedSave(
+                provider.GetRequiredService<LedgerlyDbContext>(), gate));
+        }));
+        using var client = Client(racing);
+        try
+        {
+            const string idempotencyKey = "parallel-transfer-retry";
+            var responses = await Task.WhenAll(
+                PostTransfer(client, source.Id, destination.Id, 40m, idempotencyKey),
+                PostTransfer(client, source.Id, destination.Id, 40m, idempotencyKey));
+            try
+            {
+                Assert.All(responses, response => Assert.Equal(HttpStatusCode.OK, response.StatusCode));
+                var receipts = await Task.WhenAll(responses.Select(async response =>
+                    (await response.Content.ReadFromJsonAsync<CreateTransferResponse>())!));
+                Assert.Equal(receipts[0], receipts[1]);
+
+                await using var scope = factory.Services.CreateAsyncScope();
+                var db = scope.ServiceProvider.GetRequiredService<LedgerlyDbContext>();
+                Assert.Equal(60m, await db.Wallets.Where(wallet => wallet.Id == source.Id)
+                    .Select(wallet => wallet.Balance).SingleAsync());
+                Assert.Equal(40m, await db.Wallets.Where(wallet => wallet.Id == destination.Id)
+                    .Select(wallet => wallet.Balance).SingleAsync());
+                Assert.Equal(1, await db.WalletTransfers.CountAsync(transfer =>
+                    transfer.SourceWalletId == source.Id && transfer.IdempotencyKey == idempotencyKey));
+                Assert.Equal(1, await db.JournalEntries.CountAsync(entry => entry.Id == receipts[0].JournalEntryId));
+            }
+            finally { foreach (var response in responses) response.Dispose(); }
+        }
+        finally { await Cleanup(source.Id, destination.Id); }
+    }
+
+    [Fact]
     public async Task Transfer_WhenFundsAreInsufficient_ShouldReturn409WithoutAnyTransferWrites()
     {
         var source = await SeedWallet();
@@ -174,9 +340,20 @@ public sealed class TransferWalletHttpTests(LedgerlyApiFactory factory)
         finally { await Cleanup(source.Id, firstDestination.Id, secondDestination.Id); }
     }
 
-    private static Task<HttpResponseMessage> PostTransfer(
-        HttpClient client, Guid source, Guid destination, decimal amount) =>
-        client.PostAsJsonAsync("/api/transfers", new CreateTransferRequest(source, destination, amount));
+    private static async Task<HttpResponseMessage> PostTransfer(
+        HttpClient client,
+        Guid source,
+        Guid destination,
+        decimal amount,
+        string? idempotencyKey = null)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/api/transfers")
+        {
+            Content = JsonContent.Create(new CreateTransferRequest(source, destination, amount)),
+        };
+        request.Headers.Add("Idempotency-Key", idempotencyKey ?? Guid.NewGuid().ToString("N"));
+        return await client.SendAsync(request);
+    }
 
     private static async Task Fund(HttpClient client, Guid walletId, decimal amount)
     {
@@ -207,6 +384,8 @@ public sealed class TransferWalletHttpTests(LedgerlyApiFactory factory)
             account.WalletId != null && walletIds.Contains(account.WalletId.Value)).Select(account => account.Id);
         var journalIds = await db.Postings.Where(posting => accountIds.Contains(posting.AccountId))
             .Select(posting => posting.JournalEntryId).Distinct().ToArrayAsync();
+        await db.WalletTransfers.Where(transfer => walletIds.Contains(transfer.SourceWalletId)
+            || walletIds.Contains(transfer.DestinationWalletId)).ExecuteDeleteAsync();
         await db.TestDepositOperations.Where(operation => walletIds.Contains(operation.WalletId)).ExecuteDeleteAsync();
         await db.Postings.Where(posting => journalIds.Contains(posting.JournalEntryId)).ExecuteDeleteAsync();
         await db.JournalEntries.Where(entry => journalIds.Contains(entry.Id)).ExecuteDeleteAsync();

@@ -31,6 +31,8 @@ Bu dizin yalnızca sistemin son hâlini değil, o hâle neden ve nasıl ulaşıl
 - [03 — Get Wallet Query ve Kaynak Adresi](journey/03-get-wallet-query.md)
 - [LAB-001 — Eşzamanlı Create Wallet Yarışı](labs/001-concurrent-create-wallet/README.md)
 - [ADR-0003 — Concurrent Create Wallet İçin Dar Exception Translation](adr/0003-concurrent-create-wallet-conflict.md)
+- [LAB-006 — Transfer Retry ve Idempotency](labs/006-transfer-idempotency/README.md)
+- [ADR-0011 — Transferde Kalıcı Idempotency Kaydı](adr/0011-transfer-idempotency.md)
 
 ## Kayıt kuralları
 

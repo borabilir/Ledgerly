@@ -85,7 +85,7 @@ Normal transfer, yetersiz bakiye, aynı wallet, eksik hedef, dengeli posting'ler
 
 ## Sınırlar ve sıradaki problem
 
-Transfer henüz kendi kalıcı `Transfer` kaydına veya durum makinesine sahip değildir; journal receipt döndürür. Aynı transfer isteği farklı HTTP çağrılarıyla sırayla tekrar gelirse iki ayrı transfer sayılabilir. Test deposit için öğrendiğimiz idempotency yaklaşımını transfer kimliğiyle genelleştirmek sonraki adımdır. Auth, farklı currency, ücret, reversal ve dış sistemler kapsam dışıdır.
+Transfer retry problemi bir sonraki adım olan [LAB-006](../006-transfer-idempotency/README.md) ile çözüldü. Transfer artık kalıcı `TransferId` ve idempotency kaydına sahiptir. Durum makinesi, auth, farklı currency, ücret, reversal ve dış sistemler hâlâ kapsam dışıdır.
 
 ## Mülakatta nasıl anlatırım?
 

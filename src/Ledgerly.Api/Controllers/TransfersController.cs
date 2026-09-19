@@ -15,13 +15,15 @@ public sealed class TransfersController(TransferWalletHandler handler) : Control
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<CreateTransferResponse>> Create(
+        [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey,
         CreateTransferRequest request,
         CancellationToken cancellationToken)
     {
         var result = await handler.Handle(new TransferWalletCommand(
             request.SourceWalletId,
             request.DestinationWalletId,
-            request.Amount), cancellationToken);
+            request.Amount,
+            idempotencyKey ?? string.Empty), cancellationToken);
         if (result is null)
         {
             return Problem(
@@ -31,6 +33,7 @@ public sealed class TransfersController(TransferWalletHandler handler) : Control
         }
 
         return Ok(new CreateTransferResponse(
+            result.TransferId,
             result.JournalEntryId,
             result.SourceWalletId,
             result.DestinationWalletId,

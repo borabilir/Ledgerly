@@ -1,3 +1,7 @@
 namespace Ledgerly.Application.Wallets.TransferWallet;
 
-public sealed record TransferWalletCommand(Guid SourceWalletId, Guid DestinationWalletId, decimal Amount);
+public sealed record TransferWalletCommand(
+    Guid SourceWalletId,
+    Guid DestinationWalletId,
+    decimal Amount,
+    string IdempotencyKey);

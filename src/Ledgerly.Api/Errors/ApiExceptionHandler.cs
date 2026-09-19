@@ -44,6 +44,16 @@ internal sealed class ApiExceptionHandler : IExceptionHandler
                 "Idempotency request in progress",
                 "Retry with the same idempotency key."
             ),
+            TransferIdempotencyConflictException => (
+                StatusCodes.Status409Conflict,
+                "Transfer idempotency key conflict",
+                exception.Message
+            ),
+            TransferIdempotencyWriteConflictException => (
+                StatusCodes.Status409Conflict,
+                "Transfer request in progress",
+                "Retry with the same idempotency key."
+            ),
             InsufficientFundsException => (
                 StatusCodes.Status409Conflict,
                 "Insufficient funds",

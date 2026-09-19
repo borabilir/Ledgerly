@@ -18,4 +18,4 @@ Transfer kalıcı ve idempotentti; fakat tamamlanan transferi başka sistemlere 
 
 ## Sonraki adım
 
-Outbox şu an logging publisher'a bağlıdır. Sonraki adım gerçek RabbitMQ adaptörünü ve container'ını eklemek; ardından aynı event iki kez teslim edildiğinde consumer tarafında Inbox/Idempotent Consumer korumasını kurmaktır.
+Gerçek RabbitMQ adaptörü ve container'ı [13 — RabbitMQ Publisher](13-rabbitmq-publisher.md) adımında eklendi. Sonraki problem, aynı event iki kez teslim edildiğinde consumer tarafında oluşabilecek tekrar eden yan etkidir; Inbox/Idempotent Consumer koruması bu problem reproduce edildikten sonra kurulacaktır.

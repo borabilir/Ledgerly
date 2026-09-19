@@ -39,7 +39,15 @@ public static class DependencyInjection
         services.AddScoped<ITestDepositOperationRepository, TestDepositOperationRepository>();
         services.AddScoped<IWalletTransferRepository, WalletTransferRepository>();
         services.AddScoped<IOutboxMessageWriter, OutboxMessageWriter>();
-        services.AddScoped<IIntegrationEventPublisher, LoggingIntegrationEventPublisher>();
+        services.Configure<RabbitMqOptions>(configuration.GetSection(RabbitMqOptions.SectionName));
+        if (configuration.GetValue("RabbitMq:Enabled", false))
+        {
+            services.AddSingleton<IIntegrationEventPublisher, RabbitMqIntegrationEventPublisher>();
+        }
+        else
+        {
+            services.AddSingleton<IIntegrationEventPublisher, LoggingIntegrationEventPublisher>();
+        }
         services.AddScoped<OutboxProcessor>();
         services.Configure<OutboxOptions>(configuration.GetSection(OutboxOptions.SectionName));
         if (configuration.GetValue("Outbox:Enabled", true))

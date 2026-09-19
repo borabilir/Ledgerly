@@ -35,6 +35,8 @@ Bu dizin yalnızca sistemin son hâlini değil, o hâle neden ve nasıl ulaşıl
 - [ADR-0011 — Transferde Kalıcı Idempotency Kaydı](adr/0011-transfer-idempotency.md)
 - [LAB-007 — DB Commit Oldu Ama Event Yayınlanamadı](labs/007-transactional-outbox/README.md)
 - [ADR-0012 — Transfer Eventleri İçin Transactional Outbox](adr/0012-transactional-outbox.md)
+- [LAB-008 — Gerçek RabbitMQ Publisher](labs/008-rabbitmq-publisher/README.md)
+- [ADR-0013 — Outbox Eventleri İçin RabbitMQ Publisher](adr/0013-rabbitmq-publisher.md)
 
 ## Kayıt kuralları
 

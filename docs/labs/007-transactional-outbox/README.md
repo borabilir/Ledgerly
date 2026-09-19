@@ -137,7 +137,7 @@ Outbox event kaybını önler ama **at-least-once delivery** sağlar. Duplicate 
 
 ## Mevcut sınırlar
 
-- Gerçek RabbitMQ adaptörü henüz yok; şimdilik logging publisher ve test publisher kullanılıyor.
+- Bu lab'ın ilk sürümünde gerçek RabbitMQ adaptörü yoktu; adaptör ve gerçek broker testi daha sonra [LAB-008](../008-rabbitmq-publisher/README.md) ile eklendi.
 - Retry için exponential backoff ve jitter yoktur.
 - Sürekli hata veren mesajlar için dead-letter politikası yoktur.
 - Birden fazla application instance aynı pending mesajı okuyup duplicate publish edebilir.

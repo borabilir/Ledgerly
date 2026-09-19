@@ -22,4 +22,4 @@ Doğrudan publish event kaybedebilir. İşlemden önce publish hayalet event ür
 
 Transfer isteğinin başarısı broker erişilebilirliğine bağlı değildir. Event niyeti business data ile atomik ve kalıcıdır. Buna karşılık polling gecikmesi, outbox tablo büyümesi ve duplicate teslimat yönetilmelidir.
 
-İlk sürümde gerçek RabbitMQ, backoff/jitter, dead-letter, retention ve multi-instance claim mekanizması yoktur. Bunlar ölçülebilir ayrı senaryolar olarak eklenecektir. Ayrıntılı deney: [LAB-007](../labs/007-transactional-outbox/README.md).
+İlk sürümde gerçek RabbitMQ, backoff/jitter, dead-letter, retention ve multi-instance claim mekanizması yoktu. RabbitMQ adaptörü daha sonra [ADR-0013](0013-rabbitmq-publisher.md) ile eklendi; kalan sınırlar ölçülebilir ayrı senaryolar olarak ele alınacaktır. Ayrıntılı deney: [LAB-007](../labs/007-transactional-outbox/README.md).

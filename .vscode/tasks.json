@@ -12,7 +12,7 @@
       "problemMatcher": []
     },
     {
-      "label": "Ledgerly: PostgreSQL start",
+      "label": "Ledgerly: infrastructure start",
       "type": "process",
       "command": "docker",
       "args": ["compose", "up", "-d"],
@@ -22,7 +22,7 @@
       "problemMatcher": []
     },
     {
-      "label": "Ledgerly: PostgreSQL status",
+      "label": "Ledgerly: infrastructure status",
       "type": "process",
       "command": "docker",
       "args": ["compose", "ps"],
@@ -59,7 +59,7 @@
       "label": "Ledgerly: prepare API",
       "dependsOrder": "sequence",
       "dependsOn": [
-        "Ledgerly: PostgreSQL start",
+        "Ledgerly: infrastructure start",
         "Ledgerly: tool restore",
         "Ledgerly: database update"
       ],

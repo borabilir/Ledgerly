@@ -18,5 +18,23 @@ services:
       timeout: 5s
       retries: 10
 
+  rabbitmq:
+    image: rabbitmq:4.3.6-management
+    hostname: ledgerly-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ${LEDGERLY_RABBITMQ_USER:-ledgerly}
+      RABBITMQ_DEFAULT_PASS: ${LEDGERLY_RABBITMQ_PASSWORD:-ledgerly_dev}
+    ports:
+      - "${LEDGERLY_RABBITMQ_PORT:-5672}:5672"
+      - "${LEDGERLY_RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
+    volumes:
+      - ledgerly_rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
 volumes:
   ledgerly_postgres_data:
+  ledgerly_rabbitmq_data:

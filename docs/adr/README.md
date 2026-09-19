@@ -14,5 +14,6 @@
 - [ADR-0010 — Wallet Transferinde Optimistic Concurrency](0010-wallet-transfer-and-double-spending.md)
 - [ADR-0011 — Transferde Kalıcı Idempotency Kaydı](0011-transfer-idempotency.md)
 - [ADR-0012 — Transfer Eventleri İçin Transactional Outbox](0012-transactional-outbox.md)
+- [ADR-0013 — Outbox Eventleri İçin RabbitMQ Publisher](0013-rabbitmq-publisher.md)
 
 Mimari kararlar sıralı `ADR-NNN-kisa-baslik.md` dosyaları olarak kaydedilir. Yeni kayıtlar için [ADR şablonu](../templates/adr-template.md) kullanılır.

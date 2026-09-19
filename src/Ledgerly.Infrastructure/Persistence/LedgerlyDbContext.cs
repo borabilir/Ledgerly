@@ -1,6 +1,7 @@
 using Ledgerly.Application.Abstractions.Persistence;
 using Ledgerly.Application.Ledger;
 using Ledgerly.Application.Wallets.CreateWallet;
+using Ledgerly.Application.Wallets.TestDeposit;
 using Ledgerly.Domain.Wallets;
 using Ledgerly.Infrastructure.Persistence.Configurations;
 using Ledgerly.Infrastructure.Persistence.Records;
@@ -20,6 +21,7 @@ public sealed class LedgerlyDbContext : DbContext, IUnitOfWork
     internal DbSet<LedgerAccountRecord> LedgerAccounts => Set<LedgerAccountRecord>();
     internal DbSet<JournalEntryRecord> JournalEntries => Set<JournalEntryRecord>();
     internal DbSet<PostingRecord> Postings => Set<PostingRecord>();
+    internal DbSet<TestDepositOperationRecord> TestDepositOperations => Set<TestDepositOperationRecord>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -38,6 +40,15 @@ public sealed class LedgerlyDbContext : DbContext, IUnitOfWork
             exception.Entries.Count > 0 && exception.Entries.All(entry => entry.Entity is Wallet))
         {
             throw new LedgerWriteConflictException(exception);
+        }
+        catch (DbUpdateException exception) when (
+            exception.InnerException is PostgresException
+            {
+                SqlState: PostgresErrorCodes.UniqueViolation,
+                ConstraintName: TestDepositOperationConfiguration.PrimaryKeyName,
+            })
+        {
+            throw new TestDepositIdempotencyWriteConflictException(exception);
         }
         catch (DbUpdateException exception) when (
             exception.InnerException is PostgresException
@@ -63,5 +74,24 @@ public sealed class LedgerlyDbContext : DbContext, IUnitOfWork
             // Create Wallet saves one new aggregate. Preserve ambiguous batch failures.
             throw new WalletAlreadyExistsException(wallet.OwnerId, wallet.Currency.Code, exception);
         }
+        catch (Exception exception) when (IsDeadlock(exception))
+        {
+            // PostgreSQL can choose either writer as the deadlock victim when both
+            // stage new ledger rows. The entire SaveChanges transaction is rolled back.
+            throw new LedgerWriteConflictException(exception);
+        }
+    }
+
+    private static bool IsDeadlock(Exception exception)
+    {
+        for (Exception? current = exception; current is not null; current = current.InnerException)
+        {
+            if (current is PostgresException { SqlState: PostgresErrorCodes.DeadlockDetected })
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

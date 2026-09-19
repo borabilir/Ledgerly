@@ -6,3 +6,5 @@ Gerçek hayat problemlerini kontrollü ve tekrar üretilebilir biçimde oluştur
 
 - [LAB-001 — Eşzamanlı Create Wallet Yarışı](001-concurrent-create-wallet/README.md)
 - [LAB-002 — Journal Atomicity](002-journal-atomicity/README.md)
+- [LAB-003 — Test deposit ve eşzamanlı bakiye güncellemesi](003-test-deposit/README.md)
+- [LAB-004 — Tekrarlanan yatırma isteği (idempotency)](004-test-deposit-idempotency/README.md)

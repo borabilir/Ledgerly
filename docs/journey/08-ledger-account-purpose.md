@@ -27,4 +27,4 @@ Tüm testler: **124 başarılı** — 53 Domain, 9 Application, 62 Integration. 
 
 ## Sonraki adım
 
-Test yatırmasındaki aynı başarılı isteğin tekrar işlenmesi hâlâ ayrı bir problem. Idempotency lab'ı sırada; Purpose bu davranışı değiştirmez.
+Purpose bu milestone'da tekrar işleme davranışını değiştirmedi. Ardından [09 — Test yatırmasında idempotency](09-test-deposit-idempotency.md) tamamlandı; sıradaki finansal senaryo wallet-to-wallet transfer ve double-spending.

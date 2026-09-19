@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Ledgerly.IntegrationTests.Infrastructure;
 
@@ -17,6 +18,13 @@ public sealed class LedgerlyApiFactory : WebApplicationFactory<Program>, IAsyncL
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("IntegrationTests");
+        // Keep test logs in the test process; Windows Event Log needs permissions
+        // that a normal developer account may not have.
+        builder.ConfigureLogging(logging =>
+        {
+            logging.ClearProviders();
+            logging.AddConsole();
+        });
 
         var configuration = new ConfigurationBuilder()
             .SetBasePath(AppContext.BaseDirectory)
@@ -35,7 +43,7 @@ public sealed class LedgerlyApiFactory : WebApplicationFactory<Program>, IAsyncL
         await using var scope = Services.CreateAsyncScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<LedgerlyDbContext>();
 
-        await dbContext.Database.MigrateAsync();
+        await PostgresMigrationGate.MigrateAsync(dbContext);
     }
 
     Task IAsyncLifetime.DisposeAsync()

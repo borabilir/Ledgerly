@@ -15,6 +15,7 @@ public sealed class TestDepositsController(TestDepositHandler handler, IWebHostE
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<TestDepositResponse>> Create(Guid walletId, TestDepositRequest request,
+        [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey,
         CancellationToken cancellationToken)
     {
         if (!environment.IsDevelopment() && !environment.IsEnvironment("IntegrationTests"))
@@ -22,7 +23,14 @@ public sealed class TestDepositsController(TestDepositHandler handler, IWebHostE
             return Problem(statusCode: StatusCodes.Status404NotFound, title: "Endpoint not available");
         }
 
-        var result = await handler.Handle(new TestDepositCommand(walletId, request.Amount), cancellationToken);
+        if (string.IsNullOrWhiteSpace(idempotencyKey) || idempotencyKey.Length > 128
+            || idempotencyKey != idempotencyKey.Trim())
+        {
+            return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Invalid idempotency key",
+                detail: "Provide an Idempotency-Key header of 1–128 characters without surrounding whitespace.");
+        }
+
+        var result = await handler.Handle(new TestDepositCommand(walletId, request.Amount, idempotencyKey), cancellationToken);
         if (result is null)
         {
             return Problem(statusCode: StatusCodes.Status404NotFound, title: "Wallet not found",

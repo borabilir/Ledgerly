@@ -29,4 +29,4 @@ Yeni Domain 7, Application 5, Integration 13 case: toplam 115 test (53 Domain, 9
 
 ## Sonraki adım
 
-Aynı yatırma isteğini iki kez göndermek şu an iki kez bakiye artırır. Sıradaki uygun lab: timeout/retry örneği üzerinden idempotency, yani aynı işleme ait tekrarları tanıyıp tek finansal etki oluşturma. Sonrasında transfer ve bakiye azalışıyla double-spending senaryosu. Gerçek banka fonu, auth, DB append-only koruması ve event sourcing tamamlanmış sayılmaz.
+Bu milestone tamamlandığında aynı yatırma isteğini iki kez göndermek iki kez bakiye artırıyordu. Bu problem daha sonra [09 — Test yatırmasında idempotency](09-test-deposit-idempotency.md) çalışmasında çözüldü. Sıradaki finansal senaryo transfer ve bakiye azalışıyla double-spending. Gerçek banka fonu, auth, DB append-only koruması ve event sourcing tamamlanmış sayılmaz.

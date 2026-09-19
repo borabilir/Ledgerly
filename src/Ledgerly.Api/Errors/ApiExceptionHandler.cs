@@ -1,5 +1,6 @@
 using Ledgerly.Application.Wallets.CreateWallet;
 using Ledgerly.Application.Ledger;
+using Ledgerly.Application.Wallets.TestDeposit;
 using Microsoft.AspNetCore.Diagnostics;
 
 namespace Ledgerly.Api.Errors;
@@ -30,6 +31,16 @@ internal sealed class ApiExceptionHandler : IExceptionHandler
                 StatusCodes.Status409Conflict,
                 "Ledger write conflict",
                 exception.Message
+            ),
+            TestDepositIdempotencyConflictException => (
+                StatusCodes.Status409Conflict,
+                "Idempotency key conflict",
+                exception.Message
+            ),
+            TestDepositIdempotencyWriteConflictException => (
+                StatusCodes.Status409Conflict,
+                "Idempotency request in progress",
+                "Retry with the same idempotency key."
             ),
             ArgumentException => (
                 StatusCodes.Status400BadRequest,

@@ -86,3 +86,5 @@ Dengeli `JournalEntry` ve immutable `Posting` modeli ile ledger persistence tama
 Hesap/journal/posting tabloları ve atomik kayıt için [persistence belgesine](docs/architecture/03-ledger-persistence.md), yarım kayıt deneyini çalıştırmak için [LAB-002](docs/labs/002-journal-atomicity/README.md) sayfasına bakın.
 
 Hesabın muhasebe türü `Type`, kullanım amacı ise `Purpose` ile tutulur. Test fonu sorgusu açıkça `TestFunding` amacını arar. [Type ve Purpose ayrımı](docs/domain/05-ledger-account-purpose.md).
+
+Test yatırmasında tekrar deneme için `Idempotency-Key` zorunludur: aynı key ve tutar ilk makbuzu döner, farklı tutar `409` verir. [Senaryo, karar ve testler](docs/labs/004-test-deposit-idempotency/README.md).

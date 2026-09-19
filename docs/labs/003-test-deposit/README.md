@@ -54,4 +54,4 @@ dotnet test tests/Ledgerly.IntegrationTests/Ledgerly.IntegrationTests.csproj \
 
 ## Sınır
 
-Bu çalışma idempotency sağlamaz. Aynı başarılı HTTP isteğini iki kez yollamak iki ayrı yatırma yapar. Transfer, para çekme, overdraft ve bilinmeyen commit sonucu sonraki çalışmalardır.
+Bu lab tamamlandığında idempotency yoktu; aynı başarılı HTTP isteği iki ayrı yatırma yapıyordu. Bu tarihsel sınır daha sonra [LAB-004](../004-test-deposit-idempotency/README.md) ile çözüldü. Transfer, para çekme, overdraft ve dış sistemde bilinmeyen commit sonucu sonraki çalışmalardır.

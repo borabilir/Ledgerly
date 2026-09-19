@@ -27,6 +27,16 @@ public sealed class TestDepositHttpTests(LedgerlyApiFactory factory)
     private static HttpClient Client(WebApplicationFactory<Program> app) => app.CreateClient(
         new WebApplicationFactoryClientOptions { BaseAddress = new Uri("https://localhost") });
     private static string Url(Guid id) => $"/api/wallets/{id}/test-deposits";
+    private static async Task<HttpResponseMessage> PostDepositAsync(HttpClient client, Guid walletId, decimal amount,
+        string? key = null)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Post, Url(walletId))
+        {
+            Content = JsonContent.Create(new TestDepositRequest(amount)),
+        };
+        request.Headers.Add("Idempotency-Key", key ?? Guid.NewGuid().ToString("N"));
+        return await client.SendAsync(request);
+    }
 
     [Fact]
     public async Task Deposit_ShouldProvisionAccountsAndAccumulateWithBalancedJournals()
@@ -35,18 +45,22 @@ public sealed class TestDepositHttpTests(LedgerlyApiFactory factory)
         using var client = Client(factory);
         try
         {
-            using var first = await client.PostAsJsonAsync(Url(wallet.Id), new TestDepositRequest(100m));
+            const string firstKey = "first-deposit";
+            using var first = await PostDepositAsync(client, wallet.Id, 100m, firstKey);
             Assert.Equal(HttpStatusCode.OK, first.StatusCode);
             var receipt = (await first.Content.ReadFromJsonAsync<TestDepositResponse>())!;
             Assert.Equal(wallet.Id, receipt.WalletId);
             Assert.Equal("TRY", receipt.CurrencyCode);
             Assert.Equal(100m, receipt.Amount);
             Assert.Equal(100m, receipt.Balance);
-            using var second = await client.PostAsJsonAsync(Url(wallet.Id), new TestDepositRequest(0.1234m));
+            using var second = await PostDepositAsync(client, wallet.Id, 0.1234m);
             Assert.Equal(HttpStatusCode.OK, second.StatusCode);
             var next = (await second.Content.ReadFromJsonAsync<TestDepositResponse>())!;
             Assert.NotEqual(receipt.JournalEntryId, next.JournalEntryId);
             Assert.Equal(100.1234m, next.Balance);
+            using var oldRetry = await PostDepositAsync(client, wallet.Id, 100m, firstKey);
+            Assert.Equal(HttpStatusCode.OK, oldRetry.StatusCode);
+            Assert.Equal(receipt, await oldRetry.Content.ReadFromJsonAsync<TestDepositResponse>());
             var get = await client.GetFromJsonAsync<GetWalletResponse>($"/api/wallets/{wallet.Id}");
             Assert.Equal(next.Balance, get!.Balance);
 
@@ -68,6 +82,193 @@ public sealed class TestDepositHttpTests(LedgerlyApiFactory factory)
         finally { await Cleanup(wallet.Id); }
     }
 
+    [Fact]
+    [Trait("Lab", "TestDepositIdempotency")]
+    public async Task Deposit_WhenIdenticalRequestIsRetried_ShouldReplayWithoutCreditingTwice()
+    {
+        var wallet = await SeedWallet();
+        using var client = Client(factory);
+        try
+        {
+            const string key = "same-logical-deposit";
+            using var first = await PostDepositAsync(client, wallet.Id, 100m, key);
+            using var retry = await PostDepositAsync(client, wallet.Id, 100m, key);
+
+            Assert.Equal(HttpStatusCode.OK, first.StatusCode);
+            Assert.Equal(HttpStatusCode.OK, retry.StatusCode);
+            var firstReceipt = (await first.Content.ReadFromJsonAsync<TestDepositResponse>())!;
+            var retryReceipt = (await retry.Content.ReadFromJsonAsync<TestDepositResponse>())!;
+            Assert.Equal(firstReceipt, retryReceipt);
+            Assert.Equal(100m, retryReceipt.Balance);
+
+            await using var scope = factory.Services.CreateAsyncScope();
+            var db = scope.ServiceProvider.GetRequiredService<LedgerlyDbContext>();
+            Assert.Equal(1, await db.JournalEntries.CountAsync(j => j.Id == firstReceipt.JournalEntryId));
+            Assert.Equal(2, await db.Postings.CountAsync(p => p.JournalEntryId == firstReceipt.JournalEntryId));
+            Assert.Equal(1, await db.TestDepositOperations.CountAsync(o => o.WalletId == wallet.Id));
+            Assert.Equal(100m, await db.Wallets.Where(w => w.Id == wallet.Id).Select(w => w.Balance).SingleAsync());
+        }
+        finally { await Cleanup(wallet.Id); }
+    }
+
+    [Fact]
+    [Trait("Lab", "TestDepositIdempotency")]
+    public async Task Deposit_WhenKeyIsMissing_ShouldReturn400WithoutWrites()
+    {
+        var wallet = await SeedWallet();
+        using var client = Client(factory);
+        try
+        {
+            using var response = await client.PostAsJsonAsync(Url(wallet.Id), new TestDepositRequest(100m));
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            Assert.Equal("Invalid idempotency key", (await response.Content.ReadFromJsonAsync<ProblemDetails>())!.Title);
+            await AssertUnchanged(wallet.Id);
+        }
+        finally { await Cleanup(wallet.Id); }
+    }
+
+    [Fact]
+    [Trait("Lab", "TestDepositIdempotency")]
+    public async Task Deposit_WhenKeyIsTooLong_ShouldReturn400WithoutWrites()
+    {
+        var wallet = await SeedWallet();
+        using var client = Client(factory);
+        try
+        {
+            using var response = await PostDepositAsync(client, wallet.Id, 100m, new string('x', 129));
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            await AssertUnchanged(wallet.Id);
+        }
+        finally { await Cleanup(wallet.Id); }
+    }
+
+    [Fact]
+    [Trait("Lab", "TestDepositIdempotency")]
+    public async Task Deposit_WhenDifferentWalletsUseSameKey_ShouldCreateSeparateOperations()
+    {
+        var firstWallet = await SeedWallet();
+        var secondWallet = await SeedWallet();
+        using var client = Client(factory);
+        try
+        {
+            const string key = "shared-by-two-wallets";
+            using var first = await PostDepositAsync(client, firstWallet.Id, 100m, key);
+            using var second = await PostDepositAsync(client, secondWallet.Id, 100m, key);
+            Assert.Equal(HttpStatusCode.OK, first.StatusCode);
+            Assert.Equal(HttpStatusCode.OK, second.StatusCode);
+            var firstReceipt = (await first.Content.ReadFromJsonAsync<TestDepositResponse>())!;
+            var secondReceipt = (await second.Content.ReadFromJsonAsync<TestDepositResponse>())!;
+            Assert.NotEqual(firstReceipt.JournalEntryId, secondReceipt.JournalEntryId);
+            await using var scope = factory.Services.CreateAsyncScope();
+            var db = scope.ServiceProvider.GetRequiredService<LedgerlyDbContext>();
+            Assert.Equal(2, await db.TestDepositOperations.CountAsync(o => o.Key == key));
+        }
+        finally { await Cleanup(firstWallet.Id, secondWallet.Id); }
+    }
+
+    [Fact]
+    [Trait("Lab", "TestDepositIdempotency")]
+    public async Task Deposit_WhenKeyIsReusedWithDifferentAmount_ShouldReturn409WithoutAnotherJournal()
+    {
+        var wallet = await SeedWallet();
+        using var client = Client(factory);
+        try
+        {
+            const string key = "same-key-different-amount";
+            using var first = await PostDepositAsync(client, wallet.Id, 100m, key);
+            using var second = await PostDepositAsync(client, wallet.Id, 200m, key);
+            Assert.Equal(HttpStatusCode.OK, first.StatusCode);
+            Assert.Equal(HttpStatusCode.Conflict, second.StatusCode);
+            Assert.Equal("Idempotency key conflict", (await second.Content.ReadFromJsonAsync<ProblemDetails>())!.Title);
+            var receipt = (await first.Content.ReadFromJsonAsync<TestDepositResponse>())!;
+            await using var scope = factory.Services.CreateAsyncScope();
+            var db = scope.ServiceProvider.GetRequiredService<LedgerlyDbContext>();
+            Assert.Equal(1, await db.TestDepositOperations.CountAsync(o => o.WalletId == wallet.Id));
+            Assert.Equal(1, await db.JournalEntries.CountAsync(j => j.Id == receipt.JournalEntryId));
+            Assert.Equal(100m, await db.Wallets.Where(w => w.Id == wallet.Id).Select(w => w.Balance).SingleAsync());
+        }
+        finally { await Cleanup(wallet.Id); }
+    }
+
+    [Fact]
+    [Trait("Lab", "TestDepositIdempotency")]
+    public async Task Deposit_WhenSameKeyRaces_ShouldCommitOnceAndReplayOneReceipt()
+    {
+        var wallet = await SeedWallet();
+        var gate = new SaveGate();
+        using var racing = factory.WithWebHostBuilder(builder => builder.ConfigureTestServices(services =>
+        {
+            services.RemoveAll<IUnitOfWork>();
+            services.AddScoped<IUnitOfWork>(provider => new CoordinatedSave(
+                provider.GetRequiredService<LedgerlyDbContext>(), gate));
+        }));
+        using var client = Client(racing);
+        try
+        {
+            const string key = "parallel-same-key";
+            var responses = await Task.WhenAll(
+                PostDepositAsync(client, wallet.Id, 100m, key),
+                PostDepositAsync(client, wallet.Id, 100m, key));
+            try
+            {
+                Assert.Contains(responses, response => response.StatusCode == HttpStatusCode.OK);
+                Assert.All(responses, response => Assert.True(
+                    response.StatusCode is HttpStatusCode.OK or HttpStatusCode.Conflict));
+                using var settledRetry = await PostDepositAsync(client, wallet.Id, 100m, key);
+                Assert.Equal(HttpStatusCode.OK, settledRetry.StatusCode);
+                var receipt = (await settledRetry.Content.ReadFromJsonAsync<TestDepositResponse>())!;
+                foreach (var response in responses.Where(response => response.StatusCode == HttpStatusCode.OK))
+                    Assert.Equal(receipt, await response.Content.ReadFromJsonAsync<TestDepositResponse>());
+                Assert.Equal(2, gate.JournalIds.Count);
+                await using var scope = factory.Services.CreateAsyncScope();
+                var db = scope.ServiceProvider.GetRequiredService<LedgerlyDbContext>();
+                Assert.Equal(1, await db.TestDepositOperations.CountAsync(o => o.WalletId == wallet.Id));
+                Assert.Equal(1, await db.JournalEntries.CountAsync(j => gate.JournalIds.Contains(j.Id)));
+                Assert.Equal(2, await db.Postings.CountAsync(p => gate.JournalIds.Contains(p.JournalEntryId)));
+                Assert.Equal(100m, await db.Wallets.Where(w => w.Id == wallet.Id).Select(w => w.Balance).SingleAsync());
+            }
+            finally { foreach (var response in responses) response.Dispose(); }
+        }
+        finally { await Cleanup(wallet.Id); }
+    }
+
+    [Fact]
+    [Trait("Lab", "TestDepositIdempotency")]
+    public async Task Deposit_WhenSameKeyRacesWithDifferentAmounts_ShouldReturnOneSuccessAndOneConflict()
+    {
+        var wallet = await SeedWallet();
+        var gate = new SaveGate();
+        using var racing = factory.WithWebHostBuilder(builder => builder.ConfigureTestServices(services =>
+        {
+            services.RemoveAll<IUnitOfWork>();
+            services.AddScoped<IUnitOfWork>(provider => new CoordinatedSave(
+                provider.GetRequiredService<LedgerlyDbContext>(), gate));
+        }));
+        using var client = Client(racing);
+        try
+        {
+            const string key = "parallel-different-amount";
+            var responses = await Task.WhenAll(
+                PostDepositAsync(client, wallet.Id, 100m, key),
+                PostDepositAsync(client, wallet.Id, 200m, key));
+            try
+            {
+                var success = Assert.Single(responses, response => response.StatusCode == HttpStatusCode.OK);
+                var conflict = Assert.Single(responses, response => response.StatusCode == HttpStatusCode.Conflict);
+                Assert.Equal("Idempotency key conflict",
+                    (await conflict.Content.ReadFromJsonAsync<ProblemDetails>())!.Title);
+                var receipt = (await success.Content.ReadFromJsonAsync<TestDepositResponse>())!;
+                await using var scope = factory.Services.CreateAsyncScope();
+                var db = scope.ServiceProvider.GetRequiredService<LedgerlyDbContext>();
+                Assert.Equal(1, await db.TestDepositOperations.CountAsync(o => o.WalletId == wallet.Id));
+                Assert.Equal(1, await db.JournalEntries.CountAsync(j => j.Id == receipt.JournalEntryId));
+                Assert.Equal(receipt.Amount, await db.Wallets.Where(w => w.Id == wallet.Id).Select(w => w.Balance).SingleAsync());
+            }
+            finally { foreach (var response in responses) response.Dispose(); }
+        }
+        finally { await Cleanup(wallet.Id); }
+    }
+
     [Theory]
     [InlineData("0")]
     [InlineData("-1")]
@@ -80,7 +281,7 @@ public sealed class TestDepositHttpTests(LedgerlyApiFactory factory)
         try
         {
             var amount = decimal.Parse(input, System.Globalization.CultureInfo.InvariantCulture);
-            using var response = await client.PostAsJsonAsync(Url(wallet.Id), new TestDepositRequest(amount));
+            using var response = await PostDepositAsync(client, wallet.Id, amount);
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
             Assert.Equal(400, (await response.Content.ReadFromJsonAsync<ProblemDetails>())!.Status);
             await AssertUnchanged(wallet.Id);
@@ -92,7 +293,7 @@ public sealed class TestDepositHttpTests(LedgerlyApiFactory factory)
     public async Task Deposit_WhenWalletMissing_ShouldReturn404()
     {
         using var client = Client(factory);
-        using var response = await client.PostAsJsonAsync(Url(Guid.NewGuid()), new TestDepositRequest(10m));
+        using var response = await PostDepositAsync(client, Guid.NewGuid(), 10m);
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
         Assert.Equal("Wallet not found", (await response.Content.ReadFromJsonAsync<ProblemDetails>())!.Title);
     }
@@ -105,7 +306,7 @@ public sealed class TestDepositHttpTests(LedgerlyApiFactory factory)
         using var client = Client(production);
         try
         {
-            using var response = await client.PostAsJsonAsync(Url(wallet.Id), new TestDepositRequest(10m));
+            using var response = await PostDepositAsync(client, wallet.Id, 10m);
             Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
             Assert.Equal("Endpoint not available", (await response.Content.ReadFromJsonAsync<ProblemDetails>())!.Title);
             await AssertUnchanged(wallet.Id);
@@ -145,8 +346,8 @@ public sealed class TestDepositHttpTests(LedgerlyApiFactory factory)
                 await ((IUnitOfWork)db).SaveChangesAsync();
             }
             var responses = await Task.WhenAll(
-                client.PostAsJsonAsync(Url(firstWallet.Id), new TestDepositRequest(10m)),
-                client.PostAsJsonAsync(Url(secondWallet.Id), new TestDepositRequest(20m)));
+                PostDepositAsync(client, firstWallet.Id, 10m),
+                PostDepositAsync(client, secondWallet.Id, 20m));
             try
             {
                 var success = Assert.Single(responses, r => r.StatusCode == HttpStatusCode.OK);
@@ -201,7 +402,7 @@ public sealed class TestDepositHttpTests(LedgerlyApiFactory factory)
         using var client = Client(broken);
         try
         {
-            using var response = await client.PostAsJsonAsync(Url(wallet.Id), new TestDepositRequest(10m));
+            using var response = await PostDepositAsync(client, wallet.Id, 10m);
             Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
             var problem = (await response.Content.ReadFromJsonAsync<ProblemDetails>())!;
             Assert.Equal("The server could not process the request.", problem.Detail);
@@ -232,6 +433,7 @@ public sealed class TestDepositHttpTests(LedgerlyApiFactory factory)
         var db = scope.ServiceProvider.GetRequiredService<LedgerlyDbContext>();
         Assert.Equal(0m, await db.Wallets.Where(w => w.Id == id).Select(w => w.Balance).SingleAsync());
         Assert.False(await db.LedgerAccounts.AnyAsync(a => a.WalletId == id));
+        Assert.False(await db.TestDepositOperations.AnyAsync(o => o.WalletId == id));
     }
 
     private async Task Cleanup(params Guid[] walletIds)
@@ -242,6 +444,7 @@ public sealed class TestDepositHttpTests(LedgerlyApiFactory factory)
         var journalIds = await db.Postings.Where(p => customers.Contains(p.AccountId)).Select(p => p.JournalEntryId).Distinct().ToArrayAsync();
         var postingAccounts = db.Postings.Where(p => journalIds.Contains(p.JournalEntryId)).Select(p => p.AccountId);
         var fundingIds = await db.LedgerAccounts.Where(a => a.WalletId == null && postingAccounts.Contains(a.Id)).Select(a => a.Id).ToArrayAsync();
+        await db.TestDepositOperations.Where(operation => walletIds.Contains(operation.WalletId)).ExecuteDeleteAsync();
         await db.Postings.Where(p => journalIds.Contains(p.JournalEntryId)).ExecuteDeleteAsync();
         await db.JournalEntries.Where(j => journalIds.Contains(j.Id)).ExecuteDeleteAsync();
         await db.LedgerAccounts.Where(a => customers.Contains(a.Id) || fundingIds.Contains(a.Id)).ExecuteDeleteAsync();

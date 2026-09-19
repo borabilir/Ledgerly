@@ -48,7 +48,7 @@ public sealed class PostgresFixture : IAsyncLifetime
         await using var scope = Services.CreateAsyncScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<LedgerlyDbContext>();
 
-        await dbContext.Database.MigrateAsync();
+        await PostgresMigrationGate.MigrateAsync(dbContext);
     }
 
     public async Task DisposeAsync()

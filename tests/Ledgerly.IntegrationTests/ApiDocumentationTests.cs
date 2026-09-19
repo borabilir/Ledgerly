@@ -38,6 +38,11 @@ public sealed class ApiDocumentationTests
         var paths = document.RootElement.GetProperty("paths");
         var depositResponses = paths.GetProperty("/api/wallets/{walletId}/test-deposits")
             .GetProperty("post").GetProperty("responses");
+        var depositParameters = paths.GetProperty("/api/wallets/{walletId}/test-deposits")
+            .GetProperty("post").GetProperty("parameters");
+        Assert.Contains(depositParameters.EnumerateArray(), parameter =>
+            parameter.GetProperty("name").GetString() == "Idempotency-Key"
+            && parameter.GetProperty("in").GetString() == "header");
         foreach (var status in new[] { "200", "400", "404", "409", "500" })
             Assert.True(depositResponses.TryGetProperty(status, out _));
         var getResponses = paths.GetProperty("/api/wallets/{walletId}")

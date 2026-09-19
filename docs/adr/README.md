@@ -10,5 +10,6 @@
 - [ADR-0006 — Ledger Persistence ve Tek Save Sınırı](0006-ledger-persistence-and-atomic-save.md)
 - [ADR-0007 — Test Yatırması ve Bakiye Çakışması](0007-test-deposit-and-balance-concurrency.md)
 - [ADR-0008 — LedgerAccount Amacını Açıkça Modellemek](0008-explicit-ledger-account-purpose.md)
+- [ADR-0009 — Test Yatırmasında Kalıcı Idempotency Key](0009-test-deposit-idempotency.md)
 
 Mimari kararlar sıralı `ADR-NNN-kisa-baslik.md` dosyaları olarak kaydedilir. Yeni kayıtlar için [ADR şablonu](../templates/adr-template.md) kullanılır.

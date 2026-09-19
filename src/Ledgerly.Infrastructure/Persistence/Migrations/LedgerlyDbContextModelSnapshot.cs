@@ -188,6 +188,50 @@ namespace Ledgerly.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Ledgerly.Infrastructure.Persistence.Records.TestDepositOperationRecord", b =>
+                {
+                    b.Property<Guid>("WalletId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("wallet_id");
+
+                    b.Property<string>("Key")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("key");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(19, 4)
+                        .HasColumnType("numeric(19,4)")
+                        .HasColumnName("amount");
+
+                    b.Property<decimal>("Balance")
+                        .HasPrecision(19, 4)
+                        .HasColumnType("numeric(19,4)")
+                        .HasColumnName("balance");
+
+                    b.Property<string>("CurrencyCode")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)")
+                        .HasColumnName("currency");
+
+                    b.Property<Guid>("JournalEntryId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("journal_entry_id");
+
+                    b.HasKey("WalletId", "Key")
+                        .HasName("pk_test_deposit_operations");
+
+                    b.HasIndex("JournalEntryId")
+                        .IsUnique()
+                        .HasDatabaseName("ux_test_deposit_operations_journal_entry_id");
+
+                    b.ToTable("test_deposit_operations", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_test_deposit_operations_amount_positive", "amount > 0");
+                        });
+                });
+
             modelBuilder.Entity("Ledgerly.Infrastructure.Persistence.Records.LedgerAccountRecord", b =>
                 {
                     b.HasOne("Ledgerly.Domain.Wallets.Wallet", null)
@@ -215,6 +259,23 @@ namespace Ledgerly.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_postings_journal_currency");
+                });
+
+            modelBuilder.Entity("Ledgerly.Infrastructure.Persistence.Records.TestDepositOperationRecord", b =>
+                {
+                    b.HasOne("Ledgerly.Domain.Wallets.Wallet", null)
+                        .WithMany()
+                        .HasForeignKey("WalletId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_test_deposit_operations_wallet");
+
+                    b.HasOne("Ledgerly.Infrastructure.Persistence.Records.JournalEntryRecord", null)
+                        .WithMany()
+                        .HasForeignKey("JournalEntryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_test_deposit_operations_journal");
                 });
 
             modelBuilder.Entity("Ledgerly.Infrastructure.Persistence.Records.JournalEntryRecord", b =>

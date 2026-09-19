@@ -53,6 +53,8 @@ Create Wallet'ın eski constraint çevirisi korunur. Foreign key, posting primar
 
 Bu test parasıdır; gerçek banka, kimlik doğrulama, yetkilendirme, ödeme sağlayıcısı ve banka mutabakatı içermez. Ortam kontrolü, gerçek para için güvenlik modelinin yerine geçmez. Ledger'ın DB düzeyinde değiştirilemezliği ve satırlar arası denge kontrolü önceki sınırlarıyla devam eder.
 
+Sonraki aşamada tekrar deneme davranışı [ADR-0009](0009-test-deposit-idempotency.md) ile değişti: test yatırması artık idempotency key ister. Yukarıdaki retry sınırı bu kararın verildiği andaki durumu anlatır.
+
 Concurrency token veritabanında yeni sütun gerektirmez. `GuardWalletBalanceConcurrency` migration'ının Up/Down metotları bu nedenle boştur; model snapshot'ı token bilgisini taşır.
 
 ## Doğrulama

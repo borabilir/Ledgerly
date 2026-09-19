@@ -1,6 +1,8 @@
 using Ledgerly.Application.Wallets.CreateWallet;
 using Ledgerly.Application.Ledger;
 using Ledgerly.Application.Wallets.TestDeposit;
+using Ledgerly.Application.Wallets.TransferWallet;
+using Ledgerly.Domain.Wallets;
 using Microsoft.AspNetCore.Diagnostics;
 
 namespace Ledgerly.Api.Errors;
@@ -41,6 +43,16 @@ internal sealed class ApiExceptionHandler : IExceptionHandler
                 StatusCodes.Status409Conflict,
                 "Idempotency request in progress",
                 "Retry with the same idempotency key."
+            ),
+            InsufficientFundsException => (
+                StatusCodes.Status409Conflict,
+                "Insufficient funds",
+                exception.Message
+            ),
+            SameWalletTransferException or TransferCurrencyMismatchException => (
+                StatusCodes.Status400BadRequest,
+                "Invalid transfer",
+                exception.Message
             ),
             ArgumentException => (
                 StatusCodes.Status400BadRequest,

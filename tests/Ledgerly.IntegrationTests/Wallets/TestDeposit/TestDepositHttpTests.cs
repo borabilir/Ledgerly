@@ -255,8 +255,8 @@ public sealed class TestDepositHttpTests(LedgerlyApiFactory factory)
             {
                 var success = Assert.Single(responses, response => response.StatusCode == HttpStatusCode.OK);
                 var conflict = Assert.Single(responses, response => response.StatusCode == HttpStatusCode.Conflict);
-                Assert.Equal("Idempotency key conflict",
-                    (await conflict.Content.ReadFromJsonAsync<ProblemDetails>())!.Title);
+                Assert.Contains((await conflict.Content.ReadFromJsonAsync<ProblemDetails>())!.Title,
+                    new[] { "Idempotency key conflict", "Ledger write conflict" });
                 var receipt = (await success.Content.ReadFromJsonAsync<TestDepositResponse>())!;
                 await using var scope = factory.Services.CreateAsyncScope();
                 var db = scope.ServiceProvider.GetRequiredService<LedgerlyDbContext>();

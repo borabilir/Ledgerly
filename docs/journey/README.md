@@ -12,5 +12,6 @@
 - [07 — Test Bakiyesi Yatırma](07-test-deposit.md)
 - [08 — LedgerAccount Purpose](08-ledger-account-purpose.md)
 - [09 — Test Yatırmasında Idempotency](09-test-deposit-idempotency.md)
+- [10 — Wallet-to-Wallet Transfer ve Double-Spending](10-wallet-transfer.md)
 
 Milestone'lar ve projenin kronolojik gelişimi burada tutulur. Her kayıt başlangıç durumunu, yapılan değişiklikleri, doğrulamayı ve bir sonraki adımı gösterir.

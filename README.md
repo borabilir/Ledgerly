@@ -79,7 +79,7 @@ dotnet test Ledgerly.slnx
 
 ## Ledger domain modeli
 
-Dengeli `JournalEntry` ve immutable `Posting` modeli ile ledger persistence tamamlandı. Development/test ortamında [test bakiyesi yatırma](docs/journey/07-test-deposit.md) endpoint'i de hazır; transfer henüz yoktur. [Model ve örnekler](docs/domain/03-double-entry-ledger.md), [ledger domain test kanıtı](docs/journey/04-ledger-domain.md).
+Dengeli `JournalEntry` ve immutable `Posting` modeli ile ledger persistence tamamlandı. Development/test ortamında [test bakiyesi yatırma](docs/journey/07-test-deposit.md), tüm ortamlarda ise wallet-to-wallet TRY transfer endpoint'i hazırdır. [Model ve örnekler](docs/domain/03-double-entry-ledger.md), [ledger domain test kanıtı](docs/journey/04-ledger-domain.md).
 
 `LedgerAccount` ile wallet yükümlülük hesabı ve simüle edilmiş test fon hesabının domain modeli de hazır. POST `/api/wallets` yalnızca wallet oluşturur; eksik ledger hesapları ilk test yatırmasında hazırlanır. [Hesap modeli ve sınırları](docs/domain/04-ledger-account.md).
 
@@ -88,3 +88,5 @@ Hesap/journal/posting tabloları ve atomik kayıt için [persistence belgesine](
 Hesabın muhasebe türü `Type`, kullanım amacı ise `Purpose` ile tutulur. Test fonu sorgusu açıkça `TestFunding` amacını arar. [Type ve Purpose ayrımı](docs/domain/05-ledger-account-purpose.md).
 
 Test yatırmasında tekrar deneme için `Idempotency-Key` zorunludur: aynı key ve tutar ilk makbuzu döner, farklı tutar `409` verir. [Senaryo, karar ve testler](docs/labs/004-test-deposit-idempotency/README.md).
+
+Wallet-to-wallet TRY transferi kaynak ve hedef bakiyeyi dengeli journal ile tek transaction'da değiştirir. Aynı kaynak bakiyeyi harcayan paralel transferlerden yalnızca biri commit edilir. [Double-spending deneyi](docs/labs/005-wallet-transfer-double-spending/README.md).

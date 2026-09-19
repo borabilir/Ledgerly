@@ -51,5 +51,9 @@ public sealed class ApiDocumentationTests
         Assert.True(getResponses.TryGetProperty("404", out _));
         Assert.True(paths.GetProperty("/api/wallets").GetProperty("post")
             .GetProperty("responses").TryGetProperty("201", out _));
+        var transferResponses = paths.GetProperty("/api/transfers")
+            .GetProperty("post").GetProperty("responses");
+        foreach (var status in new[] { "200", "400", "404", "409", "500" })
+            Assert.True(transferResponses.TryGetProperty(status, out _));
     }
 }

@@ -2,6 +2,8 @@ namespace Ledgerly.Domain.Wallets;
 
 public sealed class Wallet
 {
+    private const decimal MaximumBalance = 999_999_999_999_999.9999m;
+
     private Wallet(
         Guid id,
         Guid ownerId,
@@ -33,19 +35,35 @@ public sealed class Wallet
 
     public void Credit(decimal amount)
     {
-        const decimal maximumBalance = 999_999_999_999_999.9999m;
-        if (amount <= 0m || amount > maximumBalance || decimal.Round(amount, 4) != amount)
-        {
-            throw new ArgumentOutOfRangeException(nameof(amount),
-                "Amount must be positive and fit within 19 digits with up to 4 decimal places.");
-        }
+        EnsureValidAmount(amount);
 
-        if (Balance > maximumBalance - amount)
+        if (Balance > MaximumBalance - amount)
         {
             throw new ArgumentOutOfRangeException(nameof(amount), "The resulting wallet balance exceeds the supported limit.");
         }
 
         Balance += amount;
+    }
+
+    public void Debit(decimal amount)
+    {
+        EnsureValidAmount(amount);
+
+        if (Balance < amount)
+        {
+            throw new InsufficientFundsException(Balance, amount);
+        }
+
+        Balance -= amount;
+    }
+
+    private static void EnsureValidAmount(decimal amount)
+    {
+        if (amount <= 0m || amount > MaximumBalance || decimal.Round(amount, 4) != amount)
+        {
+            throw new ArgumentOutOfRangeException(nameof(amount),
+                "Amount must be positive and fit within 19 digits with up to 4 decimal places.");
+        }
     }
 
     public static Wallet Create(Guid ownerId, Currency currency, DateTimeOffset createdAt)

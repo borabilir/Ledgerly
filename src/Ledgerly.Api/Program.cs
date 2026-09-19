@@ -1,6 +1,7 @@
 using Ledgerly.Application.Wallets.CreateWallet;
 using Ledgerly.Application.Wallets.GetWallet;
 using Ledgerly.Application.Wallets.TestDeposit;
+using Ledgerly.Application.Wallets.TransferWallet;
 using Ledgerly.Api.Errors;
 using Ledgerly.Infrastructure;
 using Scalar.AspNetCore;
@@ -14,6 +15,7 @@ builder.Services.AddExceptionHandler<ApiExceptionHandler>();
 builder.Services.AddScoped<CreateWalletHandler>();
 builder.Services.AddScoped<GetWalletHandler>();
 builder.Services.AddScoped<TestDepositHandler>();
+builder.Services.AddScoped<TransferWalletHandler>();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddInfrastructure(builder.Configuration);
 
